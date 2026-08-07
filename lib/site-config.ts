@@ -10,5 +10,5 @@ export const siteConfig = {
   tagline: "Placeholder tagline — tell me what you want here and I'll swap it in.",
   sleeperLeagueId:
     process.env.SLEEPER_LEAGUE_ID ?? "1315737573154390016",
-  foundedYear: 2020, // placeholder — correct this to the league's actual founding year
+  foundedYear: 2021,
 } as const;

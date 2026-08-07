@@ -14,7 +14,8 @@ Railway.
 | Managers, Records, Season, Standings, Draft Central | ✅ Built — same caveat |
 | Recaps / Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts |
 | Storylines tab + Gemini generation pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
-| Real league colors, tagline, founding year | ❌ **Placeholder values — needs input, see below** |
+| Real league colors, tagline | ❌ **Placeholder values — needs input, see below** |
+| Founding year | ✅ 2021 |
 | Real recap/rivalry/wall-of-shame content | ❌ Placeholder example posts only |
 
 **Why "untested against live Sleeper data":** this site was built in a
@@ -37,7 +38,7 @@ box instead of crashing, so a bad assumption shows up as a gap, not a
 1. **Colors** — edit the CSS variables at the top of `app/globals.css`
    (currently a placeholder navy/gold). Every banner, badge, and nav
    element reads from these, so this alone reskins the whole site.
-2. **League name, tagline, founding year** — `lib/site-config.ts`.
+2. **Tagline** — `lib/site-config.ts` (league name and founding year are already set).
 3. **Real content** — delete the placeholder posts in `content/recaps/`,
    `content/rivalries/`, `content/wall-of-shame/` and add your own (see
    below).
