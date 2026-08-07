@@ -1,20 +1,20 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import type { Storyline, StorylineType } from "./types";
 
 const DEFAULT_PATH = path.join(process.cwd(), "data", "storylines.db");
 
-let db: Database.Database | null = null;
+let db: DatabaseSync | null = null;
 
-function getDb(): Database.Database {
+function getDb(): DatabaseSync {
   if (db) return db;
 
   const dbPath = process.env.DATABASE_PATH || DEFAULT_PATH;
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
-  db = new Database(dbPath);
-  db.pragma("journal_mode = WAL");
+  db = new DatabaseSync(dbPath);
+  db.exec("PRAGMA journal_mode = WAL");
   db.exec(`
     CREATE TABLE IF NOT EXISTS storylines (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,6 +84,6 @@ export function saveStoryline(input: Omit<Storyline, "id" | "createdAt">): void 
 export function listStorylines(limit = 50): Storyline[] {
   const rows = getDb()
     .prepare(`SELECT * FROM storylines ORDER BY created_at DESC LIMIT ?`)
-    .all(limit) as StorylineRow[];
+    .all(limit) as unknown as StorylineRow[];
   return rows.map(rowToStoryline);
 }
