@@ -9,12 +9,14 @@ Railway.
 
 | Piece | Status |
 |---|---|
-| Design system (colors, fonts, tabbed nav) | ✅ Built |
+| Design system (colors, fonts, tabbed nav) | ✅ Built — OU crimson/cream |
 | Home/hero, past-champions banner, at-a-glance box | ✅ Built — **untested against live Sleeper data** (see below) |
 | Managers, Records, Season, Standings, Draft Central | ✅ Built — same caveat |
-| Recaps / Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts |
+| Recaps / Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts. Recaps supports an "analysis" category |
+| Odds tab (fictional, derived from live stats) | ✅ Built — same live-data caveat |
 | Storylines tab + Gemini generation pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
-| Real league colors, tagline | ❌ **Placeholder values — needs input, see below** |
+| Real league colors | ✅ Oklahoma Sooners crimson/cream |
+| Tagline | ❌ **Placeholder — needs input, see below** |
 | Founding year | ✅ 2021 |
 | Real recap/rivalry/wall-of-shame content | ❌ Placeholder example posts only |
 
@@ -35,9 +37,10 @@ box instead of crashing, so a bad assumption shows up as a gap, not a
 
 ## What you need to supply
 
-1. **Colors** — edit the CSS variables at the top of `app/globals.css`
-   (currently a placeholder navy/gold). Every banner, badge, and nav
-   element reads from these, so this alone reskins the whole site.
+1. ~~Colors~~ — done, Oklahoma Sooners crimson/cream in `app/globals.css`.
+   Want something different later? Every banner, badge, and nav element
+   reads from those CSS variables, so editing them alone reskins the
+   whole site.
 2. **Tagline** — `lib/site-config.ts` (league name and founding year are already set).
 3. **Real content** — delete the placeholder posts in `content/recaps/`,
    `content/rivalries/`, `content/wall-of-shame/` and add your own (see
@@ -87,6 +90,23 @@ Full recap in markdown goes here.
 
 Add a file, commit, deploy — it shows up automatically, newest `date`
 first.
+
+**Recaps also supports an `analysis` category** — add `category: "analysis"`
+to a recap's frontmatter (see `content/recaps/example-analysis-piece.md`)
+and it sorts into a separate "Analysis" section on the tab instead of
+"Weekly Recaps." Use it for power rankings, trade grades, trend pieces —
+anything longer-form than a single week's recap.
+
+## Odds: fictional, for-fun-only
+
+The Odds tab computes championship futures, this week's matchup lines,
+and season win-total over/unders — all derived from the league's actual
+Sleeper scoring stats (`lib/odds.ts`), via a simple logistic
+win-probability model over average points scored. It's explicitly framed
+as **not real odds** (there's a disclaimer on the page itself) — just a
+fun, realistic-looking board that updates as the season's stats do.
+Nothing to configure here; it rides on the same live standings data as
+Season/Standings.
 
 ## Records: what's automatic vs. what you supply
 
@@ -172,6 +192,7 @@ app/                    Next.js App Router — one folder per tab
   page.tsx                Home/hero
   managers/ records/ season/ standings/ draft/   Sleeper-backed pages
   recaps/ rivalries/ wall-of-shame/               markdown content pages
+  odds/                   fictional odds board (championship/week/win totals)
   storylines/            AI-generated storylines tab
   api/health/             Railway healthcheck
   api/generate-storylines/  protected endpoint the cron job calls
@@ -180,7 +201,8 @@ lib/
   site-config.ts          league name/tagline/Sleeper ID
   manual-records.ts        pre-Sleeper / subjective records
   rivalries-config.ts       tagged rivalry pairs
-  content.ts               markdown+frontmatter loader
+  content.ts               markdown+frontmatter loader (recaps/rivalries/wall-of-shame)
+  odds.ts                 fictional odds computation from live standings
   sleeper/                 Sleeper API client, types, season-history walker
   storylines/               fact-gathering, prompt building, Gemini client,
                              template fallback, SQLite cache, orchestrator
