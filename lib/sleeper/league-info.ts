@@ -39,3 +39,9 @@ export function tradeDeadlineLabel(league: SleeperLeague): string {
   if (!week) return "No trade deadline set";
   return `Week ${week}`;
 }
+
+/** Last regular-season week, i.e. the week before playoffs start. Falls back to 14. */
+export function regularSeasonWeeks(league: SleeperLeague): number {
+  const playoffStart = league.settings.playoff_week_start;
+  return playoffStart ? playoffStart - 1 : 14;
+}

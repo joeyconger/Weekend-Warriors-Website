@@ -8,10 +8,14 @@ export type ContentType = "recaps" | "rivalries" | "wall-of-shame";
 
 const CONTENT_ROOT = path.join(process.cwd(), "content");
 
+export type RecapCategory = "recap" | "analysis";
+
 export interface ContentFrontmatter {
   title: string;
   date?: string;
   excerpt?: string;
+  /** Recaps only: distinguishes a weekly/season recap from a deeper analysis piece. */
+  category?: RecapCategory;
   [key: string]: unknown;
 }
 

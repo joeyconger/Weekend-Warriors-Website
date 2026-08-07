@@ -2,17 +2,17 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * League color scheme — the single source of truth for the theme. These
- * are placeholder values (navy/gold); swap them for the real league
- * colors and every banner, badge, and nav element updates automatically.
+ * League color scheme — the single source of truth for the theme.
+ * Oklahoma Sooners crimson & cream. Swap these to re-theme the whole
+ * site; every banner, badge, and nav element reads from these tokens.
  */
 :root {
-  --color-primary: #0b1d3a;
-  --color-primary-light: #16305c;
-  --color-accent: #d4af37;
-  --color-accent-dark: #a9862b;
-  --color-ink: #0f172a;
-  --color-paper: #f7f7f5;
+  --color-primary: #841617; /* Sooner crimson */
+  --color-primary-light: #a3272a; /* lighter crimson, nav bar / hover surfaces */
+  --color-accent: #fdf9d8; /* cream — text/highlights on crimson backgrounds */
+  --color-accent-dark: #841617; /* crimson — emphasis text on light/white cards */
+  --color-ink: #1a1a1a;
+  --color-paper: #fbf8ef; /* faint cream page background */
 
   --background: var(--color-paper);
   --foreground: var(--color-ink);
