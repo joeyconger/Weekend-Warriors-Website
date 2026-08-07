@@ -1,0 +1,19 @@
+name: Generate Storylines
+
+on:
+  schedule:
+    # Tuesdays 09:00 UTC — after Monday Night Football wraps up.
+    - cron: "0 9 * * 2"
+  workflow_dispatch: {}
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger generation endpoint
+        run: |
+          curl -sf -X POST "${SITE_URL}/api/generate-storylines" \
+            -H "Authorization: Bearer ${GENERATION_SECRET}"
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
