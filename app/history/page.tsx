@@ -1,9 +1,7 @@
 import { getLeagueHistory } from "@/lib/sleeper/history";
-import { getCurrentWeek, getWeekMatchups } from "@/lib/sleeper/current-week";
 import { siteConfig } from "@/lib/site-config";
 import { manualRecords } from "@/lib/manual-records";
 import StandingsTable from "@/components/StandingsTable";
-import MatchupCard from "@/components/MatchupCard";
 import RecordCard from "@/components/RecordCard";
 import DataUnavailable from "@/components/DataUnavailable";
 
@@ -12,59 +10,20 @@ export const metadata = { title: "History" };
 
 export default async function HistoryPage() {
   const history = await getLeagueHistory(siteConfig.sleeperLeagueId).catch(() => null);
-  const currentSeason = history?.seasons[0] ?? null;
+  // seasons[0] is always the current season (most-recent-first) — everything
+  // else is a past season. This year's standings live under the Season tab.
+  const pastSeasons = history ? history.seasons.slice(1) : [];
   const r = history?.records;
-
-  let week: number | null = null;
-  let matchups: Awaited<ReturnType<typeof getWeekMatchups>> = [];
-  try {
-    week = await getCurrentWeek();
-    matchups = await getWeekMatchups(siteConfig.sleeperLeagueId, week);
-  } catch {
-    week = null;
-  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <h1 className="font-display uppercase tracking-wide text-league-primary text-2xl mb-2">
         History
       </h1>
-      <p className="text-league-ink/60 mb-8">
-        This season&apos;s live standings and matchups, plus every all-time record the league
-        has on the books.
+      <p className="text-league-ink/60 mb-8 max-w-2xl">
+        Every all-time record the league has on the books, plus standings for every season
+        before this one. This year&apos;s standings live under the Season tab.
       </p>
-
-      <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-4">
-        {currentSeason?.season ?? "This"} Season
-      </h2>
-
-      <h3 className="font-display uppercase tracking-wide text-league-primary text-sm mb-4 text-league-ink/70">
-        {week ? `Week ${week} Matchups` : "Matchups"}
-      </h3>
-      {matchups.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 mb-8">
-          {matchups.map((m) => (
-            <MatchupCard key={m.matchupId} matchup={m} />
-          ))}
-        </div>
-      ) : (
-        <div className="mb-8">
-          <DataUnavailable what="this week's matchups" />
-        </div>
-      )}
-
-      <h3 className="font-display uppercase tracking-wide text-sm mb-4 text-league-ink/70">
-        Standings
-      </h3>
-      {currentSeason ? (
-        <div className="mb-16">
-          <StandingsTable standings={currentSeason.standings} />
-        </div>
-      ) : (
-        <div className="mb-16">
-          <DataUnavailable what="standings" />
-        </div>
-      )}
 
       <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-2">
         All-Time Records
@@ -139,7 +98,7 @@ export default async function HistoryPage() {
       )}
 
       {manualRecords.length > 0 && (
-        <>
+        <div className="mb-16">
           <h3 className="font-display uppercase tracking-wide text-league-primary text-sm mb-4">
             Hand-Kept Records
           </h3>
@@ -155,7 +114,36 @@ export default async function HistoryPage() {
               />
             ))}
           </div>
-        </>
+        </div>
+      )}
+
+      <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-4">
+        Past Seasons
+      </h2>
+      {!history ? (
+        <DataUnavailable what="past standings" />
+      ) : pastSeasons.length === 0 ? (
+        <p className="text-league-ink/50 text-sm">
+          No past seasons yet — this is the league&apos;s first year on Sleeper.
+        </p>
+      ) : (
+        <div className="space-y-12">
+          {pastSeasons.map((season) => (
+            <section key={season.leagueId}>
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="font-display uppercase tracking-wide text-league-primary text-lg">
+                  {season.season}
+                </h3>
+                {season.champion ? (
+                  <span className="text-sm text-league-accent-dark font-medium">
+                    Champion: {season.champion.teamName}
+                  </span>
+                ) : null}
+              </div>
+              <StandingsTable standings={season.standings} />
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );

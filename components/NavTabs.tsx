@@ -8,18 +8,23 @@ const TABS = [
   { href: "/", label: "Home" },
   { href: "/managers", label: "Managers" },
   { href: "/history", label: "History" },
-  { href: "/standings", label: "Standings" },
+  { href: "/season", label: "Season" },
   { href: "/draft", label: "Draft Central" },
-  { href: "/recaps", label: "Recaps" },
   { href: "/rivalries", label: "Rivalries" },
   { href: "/wall-of-shame", label: "Wall of Shame" },
   { href: "/odds", label: "Odds" },
-  { href: "/storylines", label: "Storylines" },
+  // Individual recap/analysis posts still live at /recaps/[slug] (their
+  // permalinks didn't move when Recaps folded into Storylines), so this
+  // tab also lights up there.
+  { href: "/storylines", label: "Storylines", alsoActiveUnder: ["/recaps"] },
 ] as const;
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string, tab: { href: string; alsoActiveUnder?: readonly string[] }) {
+  if (tab.href === "/") return pathname === "/";
+  if (pathname === tab.href || pathname.startsWith(`${tab.href}/`)) return true;
+  return (tab.alsoActiveUnder ?? []).some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
 }
 
 export default function NavTabs() {
@@ -31,7 +36,7 @@ export default function NavTabs() {
         <div className="overflow-x-auto no-scrollbar">
           <ul className="flex min-w-max px-2 sm:px-4">
             {TABS.map((tab) => {
-              const active = isActive(pathname, tab.href);
+              const active = isActive(pathname, tab);
               return (
                 <li key={tab.href}>
                   <Link

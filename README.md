@@ -11,10 +11,10 @@ Railway.
 |---|---|
 | Design system (colors, fonts, tabbed nav) | ✅ Built — OU crimson/cream |
 | Home/hero, past-champions banner, at-a-glance box | ✅ Built — **untested against live Sleeper data** (see below) |
-| Managers, History (Records + Season), Standings, Draft Central | ✅ Built — same caveat |
-| Recaps / Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts. Recaps supports an "analysis" category |
+| Managers, History (past seasons + all-time records), Season (current), Draft Central | ✅ Built — same caveat |
+| Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts |
 | Odds tab (performance + real strength of schedule + projections) | ✅ Built, math unit-tested — projections piece uses an unofficial Sleeper endpoint, see below |
-| Storylines tab + Gemini generation pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
+| Storylines tab (AI storylines + Recaps/Analysis, all one tab) + Gemini pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
 | Real league colors | ✅ Oklahoma Sooners crimson/cream |
 | Tagline | ❌ **Placeholder — needs input, see below** |
 | Founding year | ✅ 2021 |
@@ -104,9 +104,14 @@ first.
 
 **Recaps also supports an `analysis` category** — add `category: "analysis"`
 to a recap's frontmatter (see `content/recaps/example-analysis-piece.md`)
-and it sorts into a separate "Analysis" section on the tab instead of
-"Weekly Recaps." Use it for power rankings, trade grades, trend pieces —
-anything longer-form than a single week's recap.
+and it sorts into a separate "Analysis" section instead of "Weekly
+Recaps." Use it for power rankings, trade grades, trend pieces — anything
+longer-form than a single week's recap.
+
+**Recaps doesn't have its own nav tab** — it's folded into Storylines
+(see below), alongside the AI-generated content. Individual posts still
+live at their own permalink, `/recaps/[slug]`; `/recaps` itself (the old
+list page) redirects to `/storylines`.
 
 ## Odds: fictional, for-fun-only
 
@@ -150,15 +155,20 @@ publish meaningful projections very far into the future — how many weeks
 out they're actually populated isn't something this environment could
 verify.
 
-## History: current season + all-time records, what's automatic vs. what you supply
+## History vs. Season: past vs. present
 
-The History tab (`app/history/`) combines the current season's live
-standings/matchups with all-time records on one page — it used to be two
-separate tabs (Records, Season); they're consolidated here now.
-Standings still has its own tab (current + every past season).
+Split cleanly by time, not by data type:
 
-The records half walks Sleeper's full season history (via each league's
-`previous_league_id` chain) to compute, automatically:
+- **Season** (`app/season/`) — this year only: live standings and this
+  week's matchups. Nothing but the current season lives here.
+- **History** (`app/history/`) — everything before this year: standings
+  for every past season, plus all-time records (which by nature span the
+  whole league history, current season included). If the league is in
+  its first year on Sleeper, the "Past Seasons" section just says so —
+  there's nothing to show yet.
+
+The records half of History walks Sleeper's full season history (via
+each league's `previous_league_id` chain) to compute, automatically:
 
 - Most / fewest points in a single game
 - Biggest blowout / closest matchup
@@ -172,7 +182,7 @@ anything too subjective for an API (worst manager, best pick), goes in
 `lib/manual-records.ts` and renders in a separate "Hand-Kept Records"
 section.
 
-`/records` and `/season` still work as permanent redirects to `/history`
+`/records` redirects to `/history`, `/standings` redirects to `/season`
 (`next.config.ts`) in case anything's bookmarked the old URLs.
 
 **Wall of Shame also gets one computed table**: "Worst Record, Every
@@ -195,13 +205,20 @@ Two live pieces on top of the existing draft settings/results:
   league might actually use for draft order — it's a straight
   reverse-standings read.
 
-## Storylines: the AI-generated tab
+## Storylines: AI storylines + human Recaps/Analysis, one tab
 
-Pulls recent Sleeper activity (trades, matchups, streaks, waiver adds,
-tagged rivalries), builds a fact-only prompt per storyline, and asks
-Gemini's free-tier Flash model to write 2-4 sentences of sports-blog
-prose. Runs on a schedule and caches results in SQLite — **not** called
-live on page load, to stay well within the free tier.
+This tab covers two different things, stacked on one page:
+
+1. **AI storylines** — pulls recent Sleeper activity (trades, matchups,
+   streaks, waiver adds, tagged rivalries), builds a fact-only prompt per
+   storyline, and asks Gemini's free-tier Flash model to write 2-4
+   sentences of sports-blog prose. Runs on a schedule and caches results
+   in SQLite — **not** called live on page load, to stay well within the
+   free tier.
+2. **Recaps and Analysis** — the human-written markdown content from
+   `content/recaps/` (see "Content" above), split into its own "Analysis"
+   and "Weekly Recaps" sections below the AI storylines. Individual posts
+   still have their own permalink at `/recaps/[slug]`.
 
 **To turn on real AI generation:**
 
@@ -260,10 +277,11 @@ Healthcheck is `/api/health`.
 ```
 app/                    Next.js App Router — one folder per tab
   page.tsx                Home/hero
-  managers/ history/ standings/ draft/            Sleeper-backed pages
-  recaps/ rivalries/ wall-of-shame/               markdown content pages
+  managers/ history/ season/ draft/               Sleeper-backed pages
+  recaps/[slug]/           recap/analysis permalinks (no list page — folded into storylines/)
+  rivalries/ wall-of-shame/                       markdown content pages
   odds/                   fictional odds board (championship/week/win totals)
-  storylines/            AI-generated storylines tab
+  storylines/            AI storylines + Recaps/Analysis, one tab
   api/health/             Railway healthcheck
   api/generate-storylines/  protected endpoint the cron job calls
 components/             Shared UI (nav, cards, tables, banners)
@@ -286,5 +304,8 @@ lib/
 content/                 recaps/ rivalries/ wall-of-shame/ markdown posts
 scripts/generate-storylines.ts   CLI entry point for the generation job
 
-# /records and /season redirect to /history (next.config.ts)
+# Old URLs redirect (next.config.ts):
+#   /records    -> /history
+#   /standings  -> /season
+#   /recaps     -> /storylines   (but /recaps/[slug] permalinks still work)
 ```

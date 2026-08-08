@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/records", destination: "/history", permanent: true },
-      { source: "/season", destination: "/history", permanent: true },
+      { source: "/standings", destination: "/season", permanent: true },
+      { source: "/recaps", destination: "/storylines", permanent: true },
     ];
   },
 };
