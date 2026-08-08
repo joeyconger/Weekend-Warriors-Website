@@ -1,22 +1,75 @@
 import { getLeagueHistory } from "@/lib/sleeper/history";
+import { getCurrentWeek, getWeekMatchups } from "@/lib/sleeper/current-week";
 import { siteConfig } from "@/lib/site-config";
 import { manualRecords } from "@/lib/manual-records";
+import StandingsTable from "@/components/StandingsTable";
+import MatchupCard from "@/components/MatchupCard";
 import RecordCard from "@/components/RecordCard";
 import DataUnavailable from "@/components/DataUnavailable";
 
 export const revalidate = 300;
-export const metadata = { title: "Records" };
+export const metadata = { title: "History" };
 
-export default async function RecordsPage() {
+export default async function HistoryPage() {
   const history = await getLeagueHistory(siteConfig.sleeperLeagueId).catch(() => null);
+  const currentSeason = history?.seasons[0] ?? null;
   const r = history?.records;
+
+  let week: number | null = null;
+  let matchups: Awaited<ReturnType<typeof getWeekMatchups>> = [];
+  try {
+    week = await getCurrentWeek();
+    matchups = await getWeekMatchups(siteConfig.sleeperLeagueId, week);
+  } catch {
+    week = null;
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <h1 className="font-display uppercase tracking-wide text-league-primary text-2xl mb-2">
-        Records
+        History
       </h1>
-      <p className="text-league-ink/60 mb-8 max-w-2xl">
+      <p className="text-league-ink/60 mb-8">
+        This season&apos;s live standings and matchups, plus every all-time record the league
+        has on the books.
+      </p>
+
+      <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-4">
+        {currentSeason?.season ?? "This"} Season
+      </h2>
+
+      <h3 className="font-display uppercase tracking-wide text-league-primary text-sm mb-4 text-league-ink/70">
+        {week ? `Week ${week} Matchups` : "Matchups"}
+      </h3>
+      {matchups.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 mb-8">
+          {matchups.map((m) => (
+            <MatchupCard key={m.matchupId} matchup={m} />
+          ))}
+        </div>
+      ) : (
+        <div className="mb-8">
+          <DataUnavailable what="this week's matchups" />
+        </div>
+      )}
+
+      <h3 className="font-display uppercase tracking-wide text-sm mb-4 text-league-ink/70">
+        Standings
+      </h3>
+      {currentSeason ? (
+        <div className="mb-16">
+          <StandingsTable standings={currentSeason.standings} />
+        </div>
+      ) : (
+        <div className="mb-16">
+          <DataUnavailable what="standings" />
+        </div>
+      )}
+
+      <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-2">
+        All-Time Records
+      </h2>
+      <p className="text-league-ink/60 mb-6 max-w-2xl">
         Everything tagged &ldquo;via Sleeper&rdquo; is computed automatically by walking every
         season and week the league has played on Sleeper. Anything from before that (or
         anything too subjective for an API) lives below it.
@@ -87,9 +140,9 @@ export default async function RecordsPage() {
 
       {manualRecords.length > 0 && (
         <>
-          <h2 className="font-display uppercase tracking-wide text-league-primary text-lg mb-4">
+          <h3 className="font-display uppercase tracking-wide text-league-primary text-sm mb-4">
             Hand-Kept Records
-          </h2>
+          </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {manualRecords.map((rec) => (
               <RecordCard

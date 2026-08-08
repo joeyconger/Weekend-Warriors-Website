@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/records", destination: "/history", permanent: true },
+      { source: "/season", destination: "/history", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

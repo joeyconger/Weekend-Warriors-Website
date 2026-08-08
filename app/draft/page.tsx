@@ -1,13 +1,18 @@
 import { getUsers, SleeperApiError } from "@/lib/sleeper/client";
 import {
+  buildDraftCountdown,
   draftSummaryLabel,
   draftTypeLabel,
   formatDraftDate,
   getCurrentDraft,
   getDraftResults,
 } from "@/lib/sleeper/draft";
+import { getLeagueHistory } from "@/lib/sleeper/history";
+import { draftOrderFromStandings } from "@/lib/draft-order";
 import { siteConfig } from "@/lib/site-config";
 import DataUnavailable from "@/components/DataUnavailable";
+import DraftCountdown from "@/components/DraftCountdown";
+import DraftOrderTable from "@/components/DraftOrderTable";
 
 export const revalidate = 300;
 export const metadata = { title: "Draft Central" };
@@ -32,6 +37,12 @@ export default async function DraftPage() {
     loadError = true;
   }
 
+  const countdown = buildDraftCountdown(draft, siteConfig.nextDraftFallbackDate);
+
+  const history = await getLeagueHistory(siteConfig.sleeperLeagueId).catch(() => null);
+  const currentStandings = history?.seasons[0]?.standings ?? [];
+  const draftOrder = draftOrderFromStandings(currentStandings);
+
   const rounds = new Map<number, typeof picks>();
   for (const pick of picks) {
     const list = rounds.get(pick.round) ?? [];
@@ -45,8 +56,28 @@ export default async function DraftPage() {
         Draft Central
       </h1>
       <p className="text-league-ink/60 mb-8">
-        Draft settings, and full results once the draft happens.
+        Draft settings, live draft order, and full results once the draft happens.
       </p>
+
+      <div className="mb-10">
+        <DraftCountdown countdown={countdown} />
+      </div>
+
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="font-display uppercase tracking-wide text-league-primary text-lg">
+          Draft Order
+        </h2>
+        <span className="text-xs text-league-ink/40">If the season ended today</span>
+      </div>
+      {draftOrder.length > 0 ? (
+        <div className="mb-12">
+          <DraftOrderTable order={draftOrder} />
+        </div>
+      ) : (
+        <div className="mb-12">
+          <DataUnavailable what="draft order" />
+        </div>
+      )}
 
       {loadError ? (
         <DataUnavailable what="draft info" />
@@ -65,6 +96,9 @@ export default async function DraftPage() {
             ) : null}
           </div>
 
+          <h2 className="font-display uppercase tracking-wide text-league-primary text-lg mb-4">
+            Draft Results
+          </h2>
           {picks.length > 0 ? (
             <div className="space-y-8">
               {Array.from(rounds.entries())

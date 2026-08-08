@@ -11,7 +11,7 @@ Railway.
 |---|---|
 | Design system (colors, fonts, tabbed nav) | ✅ Built — OU crimson/cream |
 | Home/hero, past-champions banner, at-a-glance box | ✅ Built — **untested against live Sleeper data** (see below) |
-| Managers, Records, Season, Standings, Draft Central | ✅ Built — same caveat |
+| Managers, History (Records + Season), Standings, Draft Central | ✅ Built — same caveat |
 | Recaps / Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts. Recaps supports an "analysis" category |
 | Odds tab (performance + real strength of schedule + projections) | ✅ Built, math unit-tested — projections piece uses an unofficial Sleeper endpoint, see below |
 | Storylines tab + Gemini generation pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
@@ -51,6 +51,11 @@ box instead of crashing, so a bad assumption shows up as a gap, not a
    for any league history from before it was on Sleeper.
 6. **Gemini API key** (optional — the Storylines tab works without it,
    just with plainer template text) — see "Storylines" below.
+7. **Next draft date** — `lib/site-config.ts`'s `nextDraftFallbackDate`
+   is currently May 8, 2027 (what you told me). Draft Central's countdown
+   uses this until Sleeper actually has next season's draft scheduled
+   with a real date, then switches over automatically — update this by
+   hand only if the real date changes before that happens.
 
 ## Local development
 
@@ -145,9 +150,14 @@ publish meaningful projections very far into the future — how many weeks
 out they're actually populated isn't something this environment could
 verify.
 
-## Records: what's automatic vs. what you supply
+## History: current season + all-time records, what's automatic vs. what you supply
 
-The Records page walks Sleeper's full season history (via each league's
+The History tab (`app/history/`) combines the current season's live
+standings/matchups with all-time records on one page — it used to be two
+separate tabs (Records, Season); they're consolidated here now.
+Standings still has its own tab (current + every past season).
+
+The records half walks Sleeper's full season history (via each league's
 `previous_league_id` chain) to compute, automatically:
 
 - Most / fewest points in a single game
@@ -161,6 +171,29 @@ Anything from before that (a league that moved from ESPN/Yahoo, say), or
 anything too subjective for an API (worst manager, best pick), goes in
 `lib/manual-records.ts` and renders in a separate "Hand-Kept Records"
 section.
+
+`/records` and `/season` still work as permanent redirects to `/history`
+(`next.config.ts`) in case anything's bookmarked the old URLs.
+
+**Wall of Shame also gets one computed table**: "Worst Record, Every
+Year" (`lib/wall-of-shame.ts`), same via-Sleeper-history approach as
+Records, sitting above the hand-written entries.
+
+## Draft Central: countdown + live draft order
+
+Two live pieces on top of the existing draft settings/results:
+
+- **Countdown** — days until the next draft. Prefers a real Sleeper draft
+  once one's scheduled with a future date; until then, falls back to
+  `nextDraftFallbackDate` in `lib/site-config.ts`.
+- **Draft Order** — "if the season ended today," worst record picks
+  first, same convention as a real rookie draft (ties broken by fewest
+  points scored). Computed live from current standings
+  (`lib/draft-order.ts`), so it moves every time standings do — no extra
+  job or schedule needed, it just reflects whatever's current on each
+  page load. Doesn't know about any lottery/trade/tiebreaker rules a
+  league might actually use for draft order — it's a straight
+  reverse-standings read.
 
 ## Storylines: the AI-generated tab
 
@@ -227,7 +260,7 @@ Healthcheck is `/api/health`.
 ```
 app/                    Next.js App Router — one folder per tab
   page.tsx                Home/hero
-  managers/ records/ season/ standings/ draft/   Sleeper-backed pages
+  managers/ history/ standings/ draft/            Sleeper-backed pages
   recaps/ rivalries/ wall-of-shame/               markdown content pages
   odds/                   fictional odds board (championship/week/win totals)
   storylines/            AI-generated storylines tab
@@ -235,8 +268,10 @@ app/                    Next.js App Router — one folder per tab
   api/generate-storylines/  protected endpoint the cron job calls
 components/             Shared UI (nav, cards, tables, banners)
 lib/
-  site-config.ts          league name/tagline/Sleeper ID
+  site-config.ts          league name/tagline/Sleeper ID/next draft fallback date
   manual-records.ts        pre-Sleeper / subjective records
+  wall-of-shame.ts          worst-record-per-year computation — unit-tested
+  draft-order.ts            worst-to-first draft order from standings — unit-tested
   rivalries-config.ts       tagged rivalry pairs
   content.ts               markdown+frontmatter loader (recaps/rivalries/wall-of-shame)
   odds.ts                 pure odds math (win probability, spreads, championship, win totals) — unit-tested
@@ -245,8 +280,11 @@ lib/
   sleeper/                 Sleeper API client, types, season-history walker
     schedule.ts               full season schedule + remaining/played opponents
     projections.ts            unofficial weekly-projections endpoint client
+    draft.ts                  draft settings/results + countdown — unit-tested
   storylines/               fact-gathering, prompt building, Gemini client,
                              template fallback, SQLite cache, orchestrator
 content/                 recaps/ rivalries/ wall-of-shame/ markdown posts
 scripts/generate-storylines.ts   CLI entry point for the generation job
+
+# /records and /season redirect to /history (next.config.ts)
 ```

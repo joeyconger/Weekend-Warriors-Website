@@ -7,8 +7,7 @@ import clsx from "clsx";
 const TABS = [
   { href: "/", label: "Home" },
   { href: "/managers", label: "Managers" },
-  { href: "/records", label: "Records" },
-  { href: "/season", label: "Season" },
+  { href: "/history", label: "History" },
   { href: "/standings", label: "Standings" },
   { href: "/draft", label: "Draft Central" },
   { href: "/recaps", label: "Recaps" },

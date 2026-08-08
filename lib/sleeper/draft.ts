@@ -36,3 +36,41 @@ export async function getDraftResults(draftId: string): Promise<SleeperDraftPick
   const picks = await getDraftPicks(draftId);
   return picks.sort((a, b) => a.pick_no - b.pick_no);
 }
+
+export interface DraftCountdown {
+  targetDate: Date;
+  daysRemaining: number;
+  /** "sleeper" once Sleeper has next season's draft actually scheduled; "fallback" until then. */
+  source: "sleeper" | "fallback";
+}
+
+/**
+ * Countdown to the next draft. Prefers a real Sleeper-scheduled draft with
+ * a future start_time; falls back to a manually configured date (see
+ * lib/site-config.ts) until Sleeper has next season's draft created —
+ * which for a dynasty league's rookie draft is often not until close to
+ * the season itself.
+ */
+export function buildDraftCountdown(
+  draft: SleeperDraft | null,
+  fallbackDateStr: string,
+  now: number = Date.now()
+): DraftCountdown {
+  if (draft?.start_time && draft.start_time > now) {
+    return {
+      targetDate: new Date(draft.start_time),
+      daysRemaining: daysBetween(now, draft.start_time),
+      source: "sleeper",
+    };
+  }
+  const fallbackMs = new Date(`${fallbackDateStr}T00:00:00Z`).getTime();
+  return {
+    targetDate: new Date(fallbackMs),
+    daysRemaining: daysBetween(now, fallbackMs),
+    source: "fallback",
+  };
+}
+
+function daysBetween(fromMs: number, toMs: number): number {
+  return Math.max(0, Math.ceil((toMs - fromMs) / (1000 * 60 * 60 * 24)));
+}
