@@ -17,11 +17,10 @@ export default async function OddsPage() {
         Odds
       </h1>
       <p className="text-league-ink/60 mb-4">
-        Championship futures, this week&apos;s lines, and season win totals — blended from
-        season performance, real strength of schedule, and (when available) Sleeper&apos;s
-        weekly player projections. Early in the season, before there&apos;s much of a
-        performance track record, these lean more heavily on projections; as real results
-        pile up they shift toward actual performance.
+        Championship futures, this week&apos;s lines, and season win totals — built from real
+        results for weeks already played, and Sleeper&apos;s actual per-week player
+        projections (matched against each team&apos;s real remaining schedule) for weeks that
+        haven&apos;t happened yet. Live from week 1, not just once there&apos;s a track record.
       </p>
       <OddsDisclaimer />
 
@@ -32,8 +31,8 @@ export default async function OddsPage() {
           {!odds.projectionsAvailable ? (
             <p className="text-xs text-league-ink/40 -mt-6 mb-8">
               Sleeper&apos;s projections were unreachable this refresh — everything below is
-              running on season performance only, so it&apos;ll look flatter than usual until
-              that comes back (or until more games are in the books).
+              running on season averages only, so it&apos;ll look flatter than usual until
+              that comes back.
             </p>
           ) : null}
 

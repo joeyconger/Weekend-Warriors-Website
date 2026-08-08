@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   americanOdds,
-  blendPowerRating,
   buildChampionshipOdds,
   buildMatchupLine,
   projectWinTotal,
@@ -92,25 +91,5 @@ describe("buildChampionshipOdds", () => {
     expect(odds[0].probability).toBeGreaterThan(odds[1].probability);
     const total = odds.reduce((sum, o) => sum + o.probability, 0);
     expect(total).toBeCloseTo(1, 5);
-  });
-});
-
-describe("blendPowerRating", () => {
-  it("trusts the projection entirely with zero games played (week 1)", () => {
-    expect(blendPowerRating(0, 0, 115, 6)).toBe(115);
-  });
-
-  it("trusts performance entirely once gamesPlayed reaches the trust threshold", () => {
-    expect(blendPowerRating(102, 6, 115, 6)).toBeCloseTo(102, 5);
-    expect(blendPowerRating(102, 10, 115, 6)).toBeCloseTo(102, 5); // clamped, doesn't overshoot
-  });
-
-  it("blends proportionally in between", () => {
-    // Halfway to the trust threshold: 50/50 split.
-    expect(blendPowerRating(100, 3, 120, 6)).toBeCloseTo(110, 5);
-  });
-
-  it("falls back to avgPoints alone when no projection is available", () => {
-    expect(blendPowerRating(88, 0, null, 6)).toBe(88);
   });
 });

@@ -108,17 +108,24 @@ anything longer-form than a single week's recap.
 The Odds tab computes championship futures, this week's matchup lines +
 game totals, and season win-total over/unders. It's explicitly framed as
 **not real odds** (there's a disclaimer on the page itself) — just a fun,
-realistic-looking board driven by three real inputs:
+realistic-looking board that's live from week 1, not just once there's a
+performance track record:
 
-1. **Season performance** — average points scored per game so far.
-2. **Real strength of schedule** — pulled from the league's actual
-   Sleeper schedule (`lib/sleeper/schedule.ts`), not a flat league
-   average. Season win totals simulate each remaining week against that
-   week's actual scheduled opponent; championship odds get a small nudge
-   for teams that have already played a tougher-than-average slate.
-3. **Sleeper's weekly player projections**, for this week's matchup lines
-   specifically — a simple lineup optimizer (`lib/lineup.ts`) picks each
-   team's best-projected starters per position/FLEX slot and sums them.
+1. **Real results, for weeks already played** — actual points scored,
+   from season standings.
+2. **Real per-week projections, for weeks that haven't happened yet** —
+   `lib/odds-data.ts` fetches Sleeper's actual projections for *each*
+   remaining week individually (not just the current one), runs each
+   through a lineup optimizer (`lib/lineup.ts`) that picks a team's
+   best-projected starters per position/FLEX slot, and matches that
+   week's projected score against that week's *actual* scheduled
+   opponent (`lib/sleeper/schedule.ts`) — a real week-by-week schedule
+   simulation, not a flat average. This is what makes Championship and
+   Season Win Totals meaningful in week 1, when every team's season
+   average is still 0: there's no games-played heuristic anywhere, it's
+   just real data where it exists and real projections where it doesn't.
+3. Championship odds also get a small nudge for teams that have already
+   played a tougher-than-average schedule.
 
 The math (win-probability curve, American-odds formatting, the lineup
 optimizer, the win-total projection) lives in `lib/odds.ts` and
@@ -129,11 +136,14 @@ since it can't be verified against a live league from this environment.
 (`lib/sleeper/projections.ts`) calls an endpoint that is **not part of
 Sleeper's documented public API** — it's a widely-used but unofficial
 endpoint reverse-engineered by the fantasy-dev community, at a different
-host path than the rest of the site's Sleeper calls. If it's ever
-unreachable or shaped differently than expected, this week's lines
-automatically fall back to season-performance-only numbers (you'll see a
-small "running on season performance only" note on the page) — the rest
-of the Odds tab (championship, win totals) doesn't depend on it at all.
+host path than the rest of the site's Sleeper calls. Each remaining
+week's fetch is independent, so one bad week only costs that week's
+accuracy (falls back to season average for it); if *every* remaining
+week fails, the whole Odds tab falls back to season-average numbers and
+shows a small note on the page. A second, milder caveat: Sleeper may not
+publish meaningful projections very far into the future — how many weeks
+out they're actually populated isn't something this environment could
+verify.
 
 ## Records: what's automatic vs. what you supply
 

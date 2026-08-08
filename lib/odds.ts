@@ -38,25 +38,6 @@ export function computeTeamPower(standings: SeasonStanding[]): TeamPower[] {
   });
 }
 
-/**
- * Blends season-to-date performance with a projection into a single power
- * rating, weighted by how many real games have been played. Early in the
- * season (few/no games played) this leans almost entirely on the
- * projection — otherwise every team would look identical in week 1, since
- * avgPoints is 0 for everyone before any games are played. By the time
- * `trustGames` games have been played, it's pure performance.
- */
-export function blendPowerRating(
-  avgPoints: number,
-  gamesPlayed: number,
-  projected: number | null,
-  trustGames: number
-): number {
-  if (projected == null) return avgPoints;
-  const trust = Math.min(gamesPlayed / trustGames, 1);
-  return trust * avgPoints + (1 - trust) * projected;
-}
-
 export function winProbability(scoreA: number, scoreB: number): number {
   const diff = scoreA - scoreB;
   return 1 / (1 + Math.pow(10, -diff / VARIANCE_SCALE));
