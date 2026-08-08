@@ -2,13 +2,20 @@ import type { ManagerIdentity, SeasonStanding } from "@/lib/sleeper/history";
 
 /**
  * Fictional, entertainment-only "sportsbook" numbers derived from the
- * league's own actual scoring stats — not real odds, nobody's setting a
- * betting line on a home fantasy league. This is a simple logistic model
- * over average points scored, not a real predictive system.
+ * league's own actual scoring stats, strength of schedule, and (when
+ * reachable) Sleeper's weekly projections — not real odds, nobody's
+ * setting a betting line on a home fantasy league. Every function in this
+ * file is pure and unit-tested (see lib/odds.test.ts); the network-facing
+ * data gathering lives in lib/odds-data.ts.
  */
+
+// Rough week-to-week fantasy scoring standard deviation, in points. Tunable —
+// smaller values make favorites look more dominant, larger values flatten the board.
+const VARIANCE_SCALE = 16;
 
 export interface TeamPower {
   identity: ManagerIdentity;
+  rosterId: number;
   avgPoints: number;
   wins: number;
   losses: number;
@@ -16,15 +23,12 @@ export interface TeamPower {
   gamesPlayed: number;
 }
 
-// Rough week-to-week fantasy scoring standard deviation, in points. Tunable —
-// smaller values make favorites look more dominant, larger values flatten the board.
-const VARIANCE_SCALE = 16;
-
 export function computeTeamPower(standings: SeasonStanding[]): TeamPower[] {
   return standings.map((s) => {
     const gamesPlayed = s.wins + s.losses + s.ties;
     return {
       identity: s,
+      rosterId: s.rosterId,
       avgPoints: gamesPlayed > 0 ? s.pointsFor / gamesPlayed : 0,
       wins: s.wins,
       losses: s.losses,
@@ -34,8 +38,8 @@ export function computeTeamPower(standings: SeasonStanding[]): TeamPower[] {
   });
 }
 
-function winProbability(avgA: number, avgB: number): number {
-  const diff = avgA - avgB;
+export function winProbability(scoreA: number, scoreB: number): number {
+  const diff = scoreA - scoreB;
   return 1 / (1 + Math.pow(10, -diff / VARIANCE_SCALE));
 }
 
@@ -50,27 +54,47 @@ export function americanOdds(probability: number): string {
   return `+${odds}`;
 }
 
+function roundHalf(n: number): number {
+  return Math.round(n * 2) / 2;
+}
+
+export interface ScoredTeam {
+  identity: ManagerIdentity;
+  score: number;
+}
+
 export interface MatchupLine {
   teamA: ManagerIdentity;
   teamB: ManagerIdentity;
   favorite: ManagerIdentity;
-  spread: number; // fantasy points, always positive, favors `favorite`
+  spread: number; // points, always positive, favors `favorite`
+  total: number; // combined projected score, over/under
   moneylineA: string;
   moneylineB: string;
 }
 
-export function buildMatchupLine(teamA: TeamPower, teamB: TeamPower): MatchupLine {
-  const pA = winProbability(teamA.avgPoints, teamB.avgPoints);
-  const spread = Math.round(Math.abs(teamA.avgPoints - teamB.avgPoints) * 2) / 2;
+export function buildMatchupLine(teamA: ScoredTeam, teamB: ScoredTeam): MatchupLine {
+  const pA = winProbability(teamA.score, teamB.score);
+  const spread = roundHalf(Math.abs(teamA.score - teamB.score));
+  const total = roundHalf(teamA.score + teamB.score);
   const favorite = pA >= 0.5 ? teamA.identity : teamB.identity;
   return {
     teamA: teamA.identity,
     teamB: teamB.identity,
     favorite,
     spread,
+    total,
     moneylineA: americanOdds(pA),
     moneylineB: americanOdds(1 - pA),
   };
+}
+
+export interface ChampionshipInput {
+  identity: ManagerIdentity;
+  avgPoints: number;
+  wins: number;
+  ties: number;
+  gamesPlayed: number;
 }
 
 export interface ChampionshipOdds {
@@ -79,13 +103,13 @@ export interface ChampionshipOdds {
   americanOdds: string;
 }
 
-export function buildChampionshipOdds(teams: TeamPower[]): ChampionshipOdds[] {
+export function buildChampionshipOdds(teams: ChampionshipInput[]): ChampionshipOdds[] {
   const maxAvg = Math.max(...teams.map((t) => t.avgPoints), 1);
   const scored = teams.map((t) => {
     const winPct = t.gamesPlayed > 0 ? (t.wins + t.ties * 0.5) / t.gamesPlayed : 0.5;
-    const scoringRate = t.avgPoints / maxAvg;
+    const scoringRate = Math.max(t.avgPoints, 0) / maxAvg;
     // Cubing spreads favorites and longshots apart, like a real futures board.
-    const score = Math.pow(winPct * 0.6 + scoringRate * 0.4, 3);
+    const score = Math.pow(Math.max(winPct * 0.6 + scoringRate * 0.4, 0.001), 3);
     return { team: t, score };
   });
   const total = scored.reduce((sum, s) => sum + s.score, 0) || 1;
@@ -109,17 +133,26 @@ export interface WinTotal {
   gamesRemaining: number;
 }
 
-export function buildWinTotals(teams: TeamPower[], regularSeasonWeeks: number): WinTotal[] {
-  const leagueAvg = teams.reduce((sum, t) => sum + t.avgPoints, 0) / (teams.length || 1);
-
-  return teams.map((t) => {
-    const gamesRemaining = Math.max(0, regularSeasonWeeks - t.gamesPlayed);
-    const pWin = winProbability(t.avgPoints, leagueAvg);
-    const projectedRemainingWins = gamesRemaining * pWin;
-    const rawLine = t.wins + t.ties * 0.5 + projectedRemainingWins;
-    // Sportsbook-style half-point line so it can't push.
-    const rounded = Math.round(rawLine * 2) / 2;
-    const line = Number.isInteger(rounded) ? rounded + 0.5 : rounded;
-    return { identity: t.identity, line, currentWins: t.wins, gamesRemaining };
-  });
+/**
+ * Projects a full-season win total by simulating each remaining week
+ * against its actual scheduled opponent's power rating (real strength of
+ * schedule), rather than a flat league-average opponent.
+ */
+export function projectWinTotal(
+  team: { identity: ManagerIdentity; avgPoints: number; wins: number; ties: number },
+  remainingOpponentAvgPoints: number[]
+): WinTotal {
+  let projectedWins = team.wins + team.ties * 0.5;
+  for (const oppAvg of remainingOpponentAvgPoints) {
+    projectedWins += winProbability(team.avgPoints, oppAvg);
+  }
+  const rounded = roundHalf(projectedWins);
+  // Sportsbook-style half-point line so it can't push.
+  const line = Number.isInteger(rounded) ? rounded + 0.5 : rounded;
+  return {
+    identity: team.identity,
+    line,
+    currentWins: team.wins,
+    gamesRemaining: remainingOpponentAvgPoints.length,
+  };
 }

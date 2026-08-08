@@ -13,7 +13,7 @@ Railway.
 | Home/hero, past-champions banner, at-a-glance box | ✅ Built — **untested against live Sleeper data** (see below) |
 | Managers, Records, Season, Standings, Draft Central | ✅ Built — same caveat |
 | Recaps / Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts. Recaps supports an "analysis" category |
-| Odds tab (fictional, derived from live stats) | ✅ Built — same live-data caveat |
+| Odds tab (performance + real strength of schedule + projections) | ✅ Built, math unit-tested — projections piece uses an unofficial Sleeper endpoint, see below |
 | Storylines tab + Gemini generation pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
 | Real league colors | ✅ Oklahoma Sooners crimson/cream |
 | Tagline | ❌ **Placeholder — needs input, see below** |
@@ -63,6 +63,12 @@ Visit `http://localhost:3000`. The Sleeper league ID defaults to the one
 in `lib/site-config.ts`; override with `SLEEPER_LEAGUE_ID` in `.env.local`
 if needed.
 
+**Run the tests** (no network required — covers the Odds engine's math):
+
+```bash
+npm run test
+```
+
 ## Content: Recaps, Rivalries, Wall of Shame
 
 Each is a folder of markdown files with frontmatter — no CMS, no admin
@@ -99,14 +105,35 @@ anything longer-form than a single week's recap.
 
 ## Odds: fictional, for-fun-only
 
-The Odds tab computes championship futures, this week's matchup lines,
-and season win-total over/unders — all derived from the league's actual
-Sleeper scoring stats (`lib/odds.ts`), via a simple logistic
-win-probability model over average points scored. It's explicitly framed
-as **not real odds** (there's a disclaimer on the page itself) — just a
-fun, realistic-looking board that updates as the season's stats do.
-Nothing to configure here; it rides on the same live standings data as
-Season/Standings.
+The Odds tab computes championship futures, this week's matchup lines +
+game totals, and season win-total over/unders. It's explicitly framed as
+**not real odds** (there's a disclaimer on the page itself) — just a fun,
+realistic-looking board driven by three real inputs:
+
+1. **Season performance** — average points scored per game so far.
+2. **Real strength of schedule** — pulled from the league's actual
+   Sleeper schedule (`lib/sleeper/schedule.ts`), not a flat league
+   average. Season win totals simulate each remaining week against that
+   week's actual scheduled opponent; championship odds get a small nudge
+   for teams that have already played a tougher-than-average slate.
+3. **Sleeper's weekly player projections**, for this week's matchup lines
+   specifically — a simple lineup optimizer (`lib/lineup.ts`) picks each
+   team's best-projected starters per position/FLEX slot and sums them.
+
+The math (win-probability curve, American-odds formatting, the lineup
+optimizer, the win-total projection) lives in `lib/odds.ts` and
+`lib/lineup.ts` and is unit-tested (`npm run test`) with fabricated data,
+since it can't be verified against a live league from this environment.
+
+**One real caveat**: the weekly-projections piece
+(`lib/sleeper/projections.ts`) calls an endpoint that is **not part of
+Sleeper's documented public API** — it's a widely-used but unofficial
+endpoint reverse-engineered by the fantasy-dev community, at a different
+host path than the rest of the site's Sleeper calls. If it's ever
+unreachable or shaped differently than expected, this week's lines
+automatically fall back to season-performance-only numbers (you'll see a
+small "running on season performance only" note on the page) — the rest
+of the Odds tab (championship, win totals) doesn't depend on it at all.
 
 ## Records: what's automatic vs. what you supply
 
@@ -202,8 +229,12 @@ lib/
   manual-records.ts        pre-Sleeper / subjective records
   rivalries-config.ts       tagged rivalry pairs
   content.ts               markdown+frontmatter loader (recaps/rivalries/wall-of-shame)
-  odds.ts                 fictional odds computation from live standings
+  odds.ts                 pure odds math (win probability, spreads, championship, win totals) — unit-tested
+  odds-data.ts              orchestrator: wires standings + schedule + projections together
+  lineup.ts                pure starting-lineup projector — unit-tested
   sleeper/                 Sleeper API client, types, season-history walker
+    schedule.ts               full season schedule + remaining/played opponents
+    projections.ts            unofficial weekly-projections endpoint client
   storylines/               fact-gathering, prompt building, Gemini client,
                              template fallback, SQLite cache, orchestrator
 content/                 recaps/ rivalries/ wall-of-shame/ markdown posts

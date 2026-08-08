@@ -21,6 +21,9 @@ export default function MatchupLineCard({ line }: { line: MatchupLine }) {
           align="right"
         />
       </div>
+      <p className="text-center text-xs text-league-ink/40 mt-3 pt-3 border-t border-league-ink/10">
+        Total O/U {line.total}
+      </p>
     </div>
   );
 }
