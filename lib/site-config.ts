@@ -7,7 +7,8 @@
 
 export const siteConfig = {
   leagueName: "Weekend Warriors",
-  tagline: "Placeholder tagline — tell me what you want here and I'll swap it in.",
+  /** Empty on purpose — tell me a real tagline and I'll drop it in here. */
+  tagline: "",
   sleeperLeagueId:
     process.env.SLEEPER_LEAGUE_ID ?? "1315737573154390016",
   foundedYear: 2021,

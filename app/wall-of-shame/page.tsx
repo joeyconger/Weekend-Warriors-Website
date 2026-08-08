@@ -12,7 +12,15 @@ export const metadata = { title: "Wall of Shame" };
 export default async function WallOfShamePage() {
   const entries = listContent("wall-of-shame");
   const history = await getLeagueHistory(siteConfig.sleeperLeagueId).catch(() => null);
-  const worstRecords = history ? worstRecordPerSeason(history.seasons) : [];
+  // Current season only counts once it actually has a champion — a "worst
+  // record" mid-season is just noise that'll change by the time it matters.
+  const currentSeasonDone = history?.seasons[0]?.champion != null;
+  const eligibleSeasons = history
+    ? currentSeasonDone
+      ? history.seasons
+      : history.seasons.slice(1)
+    : [];
+  const worstRecords = worstRecordPerSeason(eligibleSeasons);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -29,20 +37,30 @@ export default async function WallOfShamePage() {
         </h2>
         <span className="text-[10px] uppercase tracking-wide text-league-ink/40">via Sleeper</span>
       </div>
-      {history ? (
-        <div className="mb-12">
-          <WorstRecordTable entries={worstRecords} />
-        </div>
-      ) : (
+      {!history ? (
         <div className="mb-12">
           <DataUnavailable what="season history" />
         </div>
+      ) : worstRecords.length === 0 ? (
+        <p className="text-league-ink/50 text-sm mb-12">
+          {currentSeasonDone
+            ? "No completed seasons yet."
+            : "This season isn't over yet — check back once it's crowned a champion."}
+        </p>
+      ) : (
+        <div className="mb-12">
+          <WorstRecordTable entries={worstRecords} />
+        </div>
       )}
 
-      <h2 className="font-display uppercase tracking-wide text-league-primary text-lg mb-4">
-        Entries
-      </h2>
-      <ContentList type="wall-of-shame" entries={entries} />
+      {entries.length > 0 ? (
+        <>
+          <h2 className="font-display uppercase tracking-wide text-league-primary text-lg mb-4">
+            Entries
+          </h2>
+          <ContentList type="wall-of-shame" entries={entries} />
+        </>
+      ) : null}
     </div>
   );
 }

@@ -15,7 +15,10 @@ export default function StorylinesPage() {
   }
 
   const [recent, archive] = [storylines.slice(0, 9), storylines.slice(9)];
+
   const recapEntries = listContent("recaps");
+  const analysis = recapEntries.filter((e) => e.frontmatter.category === "analysis");
+  const recaps = recapEntries.filter((e) => e.frontmatter.category !== "analysis");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -25,7 +28,7 @@ export default function StorylinesPage() {
       <p className="text-league-ink/60 mb-8 max-w-2xl">
         AI-generated trade recaps, matchup recaps, hot streaks, waiver-wire steals, and
         weekly Power Rankings — written from the league&apos;s actual Sleeper activity —
-        plus weekly recaps written by a human.
+        plus longer-form analysis and weekly recaps written by a human.
       </p>
 
       {storylines.length === 0 ? (
@@ -57,10 +60,21 @@ export default function StorylinesPage() {
         </>
       )}
 
+      {analysis.length > 0 && (
+        <>
+          <h2 className="font-display uppercase tracking-wide text-league-primary text-lg mb-4">
+            Analysis
+          </h2>
+          <div className="mb-12">
+            <ContentList type="recaps" entries={analysis} />
+          </div>
+        </>
+      )}
+
       <h2 className="font-display uppercase tracking-wide text-league-primary text-lg mb-4">
         Weekly Recaps
       </h2>
-      <ContentList type="recaps" entries={recapEntries} />
+      <ContentList type="recaps" entries={recaps} />
     </div>
   );
 }

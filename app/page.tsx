@@ -40,9 +40,11 @@ export default async function HomePage() {
           <h1 className="font-display text-4xl sm:text-6xl font-bold uppercase tracking-tight text-balance">
             {siteConfig.leagueName}
           </h1>
-          <p className="mt-4 text-white/70 text-lg max-w-2xl mx-auto text-balance">
-            {siteConfig.tagline}
-          </p>
+          {siteConfig.tagline ? (
+            <p className="mt-4 text-white/70 text-lg max-w-2xl mx-auto text-balance">
+              {siteConfig.tagline}
+            </p>
+          ) : null}
         </div>
       </section>
 

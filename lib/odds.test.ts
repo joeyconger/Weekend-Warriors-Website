@@ -92,4 +92,19 @@ describe("buildChampionshipOdds", () => {
     const total = odds.reduce((sum, o) => sum + o.probability, 0);
     expect(total).toBeCloseTo(1, 5);
   });
+
+  it("separates the best and worst team dramatically, not bunched near even odds", () => {
+    const odds = buildChampionshipOdds([
+      { identity: mkIdentity("best"), avgPoints: 165, wins: 11, ties: 0, gamesPlayed: 14 },
+      { identity: mkIdentity("mid"), avgPoints: 150, wins: 8, ties: 0, gamesPlayed: 14 },
+      { identity: mkIdentity("bad"), avgPoints: 135, wins: 5, ties: 0, gamesPlayed: 14 },
+      { identity: mkIdentity("worst"), avgPoints: 115, wins: 2, ties: 0, gamesPlayed: 14 },
+    ]);
+    const best = odds.find((o) => o.identity.userId === "best")!;
+    const worst = odds.find((o) => o.identity.userId === "worst")!;
+    // A modest ~2x gap in record/scoring should compound into an order of
+    // magnitude (or more) gap in title probability.
+    expect(best.probability / worst.probability).toBeGreaterThan(50);
+    expect(best.probability).toBeGreaterThan(0.5); // heavy favorite, not just "leading"
+  });
 });

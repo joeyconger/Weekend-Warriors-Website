@@ -16,9 +16,10 @@ Railway.
 | Odds tab (performance + real strength of schedule + projections) | ✅ Built, math unit-tested — projections piece uses an unofficial Sleeper endpoint, see below |
 | Storylines tab (AI storylines + Recaps/Analysis, all one tab) + Gemini pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
 | Real league colors | ✅ Oklahoma Sooners crimson/cream |
-| Tagline | ❌ **Placeholder — needs input, see below** |
+| Tagline | ❌ Empty on purpose — supply one whenever, see below |
 | Founding year | ✅ 2021 |
-| Real recap/rivalry/wall-of-shame content | ❌ Placeholder example posts only |
+| 2026 Season Preview (Analysis) | ✅ Live — real content, not a placeholder |
+| Real recap/wall-of-shame content | ❌ Still just placeholder/example posts (rivalries, weekly recaps) |
 
 **Why "untested against live Sleeper data":** this site was built in a
 sandboxed environment whose network egress is blocked from reaching
@@ -41,10 +42,13 @@ box instead of crashing, so a bad assumption shows up as a gap, not a
    Want something different later? Every banner, badge, and nav element
    reads from those CSS variables, so editing them alone reskins the
    whole site.
-2. **Tagline** — `lib/site-config.ts` (league name and founding year are already set).
-3. **Real content** — delete the placeholder posts in `content/recaps/`,
-   `content/rivalries/`, `content/wall-of-shame/` and add your own (see
-   below).
+2. **Tagline** (optional) — `lib/site-config.ts`, currently empty on
+   purpose (league name and founding year are already set). The homepage
+   just skips the tagline line entirely while it's blank — nothing to fix
+   if you never set one.
+3. **Real content** — the 2026 Season Preview is live under Storylines →
+   Analysis. Still placeholder: `content/rivalries/` and the one example
+   post in `content/recaps/` — delete those and add your own.
 4. **Rivalry tags** (optional, powers the Storylines "rivalry update"
    category) — `lib/rivalries-config.ts`.
 5. **Pre-Sleeper manual records** (optional) — `lib/manual-records.ts`,
@@ -102,22 +106,37 @@ Full recap in markdown goes here.
 Add a file, commit, deploy — it shows up automatically, newest `date`
 first.
 
+**Recaps also supports an `analysis` category** — add `category: "analysis"`
+to a recap's frontmatter and it sorts into a separate "Analysis" section
+on Storylines instead of "Weekly Recaps." Use it for season previews,
+trade grades, trend pieces — anything longer-form than a single week's
+recap. This is distinct from the AI-generated **Power Rankings**
+storyline (see Storylines below) — different name, different content,
+they don't collide. The 2026 Season Preview
+(`content/recaps/2026-season-preview.md`) is a working example.
+
 **Recaps doesn't have its own nav tab** — it's folded into Storylines
 (see below), alongside the AI-generated content. Individual posts still
 live at their own permalink, `/recaps/[slug]`; `/recaps` itself (the old
 list page) redirects to `/storylines`.
 
-Note: there's no "analysis" category here anymore — that's now an
-AI-generated Power Rankings storyline instead of a hand-written post (see
-Storylines below). This folder is just weekly recaps now.
-
-## Odds: fictional, for-fun-only
+## Odds: fictional, not real sportsbook lines
 
 The Odds tab computes championship futures, this week's matchup lines +
-game totals, and season win-total over/unders. It's explicitly framed as
-**not real odds** (there's a disclaimer on the page itself) — just a fun,
-realistic-looking board that's live from week 1, not just once there's a
-performance track record:
+game totals, and season win-total over/unders — a fun, realistic-looking
+board that's live from week 1, not just once there's a performance track
+record. (No disclaimer banner on the page — obviously nobody's setting a
+real betting line on a home fantasy league.)
+
+**Championship odds are deliberately dramatic** — the best and worst
+teams should look like a heavy favorite and a real longshot, not bunched
+together near even money. `buildChampionshipOdds` in `lib/odds.ts` raises
+each team's composite win-pct/scoring-rate score to the 8th power before
+normalizing into probabilities, so a modest real-world gap in record and
+scoring compounds into an order-of-magnitude (or more) gap in title odds.
+Tune the exponent there if it ever needs to be more or less extreme.
+
+What actually drives the numbers:
 
 1. **Real results, for weeks already played** — actual points scored,
    from season standings.
@@ -185,7 +204,12 @@ section.
 
 **Wall of Shame also gets one computed table**: "Worst Record, Every
 Year" (`lib/wall-of-shame.ts`), same via-Sleeper-history approach as
-Records, sitting above the hand-written entries.
+Records. The current season is excluded from it until it actually has a
+champion (`season.champion != null`) — a mid-season "worst record" is
+just noise that'll change by December, so it stays off the board until
+it's final. The hand-written "Entries" section only renders when there's
+actually something in `content/wall-of-shame/` — no empty-state message
+on the live page.
 
 ## Draft Central: countdown + live draft order
 
@@ -203,9 +227,9 @@ Two live pieces on top of the existing draft settings/results:
   league might actually use for draft order — it's a straight
   reverse-standings read.
 
-## Storylines: AI storylines + human weekly recaps, one tab
+## Storylines: AI storylines + human Analysis/Recaps, one tab
 
-This tab covers two different things, stacked on one page:
+This tab covers three different things, stacked on one page:
 
 1. **AI storylines** — six categories, all generated the same way: pull
    recent Sleeper activity, build a fact-only prompt, ask Gemini's
@@ -214,17 +238,20 @@ This tab covers two different things, stacked on one page:
    within the free tier.
    - Trade recaps, matchup recaps (blowouts/nail-biters), hot streaks,
      waiver-wire steals, tagged rivalry updates — all short, 2-4 sentences.
-   - **Power Rankings** (`analysis` type) — a weekly full-league
-     rankings blurb built from current standings (`gatherAnalysisFacts`
-     in `lib/storylines/gather.ts`), 4-6 sentences instead of the usual
-     2-4, calling out the team on top, a notable riser/faller, and the
-     team on the bottom. This replaced what used to be a hand-written
-     "Analysis" content category — it's fully automatic now, one per
-     week, and skips itself entirely in week 1 (nothing to rank yet with
-     every team at 0-0).
-2. **Weekly Recaps** — the human-written markdown content from
-   `content/recaps/` (see "Content" above), below the AI storylines.
-   Individual posts still have their own permalink at `/recaps/[slug]`.
+   - **Power Rankings** (`analysis` storyline type — badged "Power
+     Rankings" on the card, not to be confused with the human "Analysis"
+     content category below) — a weekly full-league rankings blurb built
+     from current standings (`gatherAnalysisFacts` in
+     `lib/storylines/gather.ts`), 4-6 sentences instead of the usual 2-4,
+     calling out the team on top, a notable riser/faller, and the team on
+     the bottom. Fully automatic, one per week, skips itself entirely in
+     week 1 (nothing to rank yet with every team at 0-0).
+2. **Analysis** — human-written, long-form pieces from `content/recaps/`
+   tagged `category: "analysis"` (see "Content" above) — season previews,
+   trade grades, deep dives. The 2026 Season Preview lives here.
+3. **Weekly Recaps** — the rest of the human-written markdown content
+   from `content/recaps/`, below Analysis. Individual posts (both
+   categories) have their own permalink at `/recaps/[slug]`.
 
 **To turn on real AI generation:**
 

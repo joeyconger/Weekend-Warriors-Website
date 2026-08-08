@@ -25,14 +25,9 @@ export default async function HistoryPage() {
         before this one. This year&apos;s standings live under the Season tab.
       </p>
 
-      <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-2">
+      <h2 className="font-display uppercase tracking-wide text-league-primary text-xl mb-4">
         All-Time Records
       </h2>
-      <p className="text-league-ink/60 mb-6 max-w-2xl">
-        Everything tagged &ldquo;via Sleeper&rdquo; is computed automatically by walking every
-        season and week the league has played on Sleeper. Anything from before that (or
-        anything too subjective for an API) lives below it.
-      </p>
 
       {!history ? (
         <DataUnavailable what="league history" />

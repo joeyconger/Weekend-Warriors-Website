@@ -108,8 +108,10 @@ export function buildChampionshipOdds(teams: ChampionshipInput[]): ChampionshipO
   const scored = teams.map((t) => {
     const winPct = t.gamesPlayed > 0 ? (t.wins + t.ties * 0.5) / t.gamesPlayed : 0.5;
     const scoringRate = Math.max(t.avgPoints, 0) / maxAvg;
-    // Cubing spreads favorites and longshots apart, like a real futures board.
-    const score = Math.pow(Math.max(winPct * 0.6 + scoringRate * 0.4, 0.001), 3);
+    // High exponent = a small edge in record/scoring compounds into a large
+    // gap in title odds — the best team should look like a heavy favorite,
+    // the worst like a real longshot, not everyone bunched near even money.
+    const score = Math.pow(Math.max(winPct * 0.6 + scoringRate * 0.4, 0.001), 8);
     return { team: t, score };
   });
   const total = scored.reduce((sum, s) => sum + s.score, 0) || 1;

@@ -1,5 +1,4 @@
 import { buildOddsData } from "@/lib/odds-data";
-import OddsDisclaimer from "@/components/OddsDisclaimer";
 import ChampionshipOddsBoard from "@/components/ChampionshipOddsBoard";
 import MatchupLineCard from "@/components/MatchupLineCard";
 import WinTotalsTable from "@/components/WinTotalsTable";
@@ -22,7 +21,6 @@ export default async function OddsPage() {
         projections (matched against each team&apos;s real remaining schedule) for weeks that
         haven&apos;t happened yet. Live from week 1, not just once there&apos;s a track record.
       </p>
-      <OddsDisclaimer />
 
       {!odds ? (
         <DataUnavailable what="odds" />
