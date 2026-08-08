@@ -6,6 +6,7 @@ const TYPE_LABEL: Record<StorylineType, string> = {
   streak: "Hot Streak",
   waiver: "Waiver Wire",
   rivalry: "Rivalry Update",
+  analysis: "Power Rankings",
 };
 
 const TYPE_COLOR: Record<StorylineType, string> = {
@@ -14,6 +15,7 @@ const TYPE_COLOR: Record<StorylineType, string> = {
   streak: "bg-orange-100 text-orange-800",
   waiver: "bg-purple-100 text-purple-800",
   rivalry: "bg-rose-100 text-rose-800",
+  analysis: "bg-indigo-100 text-indigo-800",
 };
 
 export default function StorylineCard({ storyline }: { storyline: Storyline }) {

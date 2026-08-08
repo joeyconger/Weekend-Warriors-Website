@@ -102,16 +102,14 @@ Full recap in markdown goes here.
 Add a file, commit, deploy — it shows up automatically, newest `date`
 first.
 
-**Recaps also supports an `analysis` category** — add `category: "analysis"`
-to a recap's frontmatter (see `content/recaps/example-analysis-piece.md`)
-and it sorts into a separate "Analysis" section instead of "Weekly
-Recaps." Use it for power rankings, trade grades, trend pieces — anything
-longer-form than a single week's recap.
-
 **Recaps doesn't have its own nav tab** — it's folded into Storylines
 (see below), alongside the AI-generated content. Individual posts still
 live at their own permalink, `/recaps/[slug]`; `/recaps` itself (the old
 list page) redirects to `/storylines`.
+
+Note: there's no "analysis" category here anymore — that's now an
+AI-generated Power Rankings storyline instead of a hand-written post (see
+Storylines below). This folder is just weekly recaps now.
 
 ## Odds: fictional, for-fun-only
 
@@ -205,20 +203,28 @@ Two live pieces on top of the existing draft settings/results:
   league might actually use for draft order — it's a straight
   reverse-standings read.
 
-## Storylines: AI storylines + human Recaps/Analysis, one tab
+## Storylines: AI storylines + human weekly recaps, one tab
 
 This tab covers two different things, stacked on one page:
 
-1. **AI storylines** — pulls recent Sleeper activity (trades, matchups,
-   streaks, waiver adds, tagged rivalries), builds a fact-only prompt per
-   storyline, and asks Gemini's free-tier Flash model to write 2-4
-   sentences of sports-blog prose. Runs on a schedule and caches results
-   in SQLite — **not** called live on page load, to stay well within the
-   free tier.
-2. **Recaps and Analysis** — the human-written markdown content from
-   `content/recaps/` (see "Content" above), split into its own "Analysis"
-   and "Weekly Recaps" sections below the AI storylines. Individual posts
-   still have their own permalink at `/recaps/[slug]`.
+1. **AI storylines** — six categories, all generated the same way: pull
+   recent Sleeper activity, build a fact-only prompt, ask Gemini's
+   free-tier Flash model to write it up. Runs on a schedule and caches
+   results in SQLite — **not** called live on page load, to stay well
+   within the free tier.
+   - Trade recaps, matchup recaps (blowouts/nail-biters), hot streaks,
+     waiver-wire steals, tagged rivalry updates — all short, 2-4 sentences.
+   - **Power Rankings** (`analysis` type) — a weekly full-league
+     rankings blurb built from current standings (`gatherAnalysisFacts`
+     in `lib/storylines/gather.ts`), 4-6 sentences instead of the usual
+     2-4, calling out the team on top, a notable riser/faller, and the
+     team on the bottom. This replaced what used to be a hand-written
+     "Analysis" content category — it's fully automatic now, one per
+     week, and skips itself entirely in week 1 (nothing to rank yet with
+     every team at 0-0).
+2. **Weekly Recaps** — the human-written markdown content from
+   `content/recaps/` (see "Content" above), below the AI storylines.
+   Individual posts still have their own permalink at `/recaps/[slug]`.
 
 **To turn on real AI generation:**
 
@@ -278,7 +284,7 @@ Healthcheck is `/api/health`.
 app/                    Next.js App Router — one folder per tab
   page.tsx                Home/hero
   managers/ history/ season/ draft/               Sleeper-backed pages
-  recaps/[slug]/           recap/analysis permalinks (no list page — folded into storylines/)
+  recaps/[slug]/           weekly recap permalinks (no list page — folded into storylines/)
   rivalries/ wall-of-shame/                       markdown content pages
   odds/                   fictional odds board (championship/week/win totals)
   storylines/            AI storylines + Recaps/Analysis, one tab

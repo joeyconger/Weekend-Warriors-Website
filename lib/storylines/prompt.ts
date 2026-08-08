@@ -49,6 +49,16 @@ export function factsToPrompt(facts: StorylineFacts): string {
         `Write this as the latest chapter in their rivalry.`
       );
       break;
+    case "analysis":
+      lines.push(
+        `Season ${facts.season}, current standings through week ${facts.week}, ranked 1 (best) to ${facts.rankings.length} (worst):`,
+        ...facts.rankings.map(
+          (r) =>
+            `${r.rank}. ${r.teamName} (${r.managerName}) — ${r.wins}-${r.losses}${r.ties ? `-${r.ties}` : ""}, ${r.pointsFor.toFixed(1)} points for.`
+        ),
+        `Write this as a weekly Power Rankings blurb, 4 to 6 sentences instead of the usual 2 to 4. Call out the team at the top, one notable riser or faller in the middle of the pack, and the team at the bottom — using only the records and points given above.`
+      );
+      break;
   }
 
   return lines.join("\n");
@@ -68,6 +78,8 @@ export function titleFor(facts: StorylineFacts): string {
       return `Waiver Wire Steal: ${facts.teamName}'s ${facts.playerName} pickup`;
     case "rivalry":
       return `Rivalry Update: ${facts.teamA.teamName} vs ${facts.teamB.teamName}`;
+    case "analysis":
+      return `Power Rankings: Week ${facts.week}`;
   }
 }
 
@@ -84,5 +96,7 @@ export function dedupeKeyFor(facts: StorylineFacts): string {
       return `waiver-${facts.season}-${facts.week}-${facts.teamName}-${facts.playerName}`;
     case "rivalry":
       return `rivalry-${facts.season}-${facts.week}-${facts.teamA.teamName}-${facts.teamB.teamName}`;
+    case "analysis":
+      return `analysis-${facts.season}-${facts.week}`;
   }
 }

@@ -1,6 +1,7 @@
 import { getLeague } from "@/lib/sleeper/client";
 import { siteConfig } from "@/lib/site-config";
 import {
+  gatherAnalysisFacts,
   gatherMatchupFacts,
   gatherRivalryFacts,
   gatherStreakFacts,
@@ -29,6 +30,7 @@ export async function runStorylineGeneration(): Promise<{ generated: number; ski
     gatherStreakFacts(leagueId, season),
     gatherWaiverFacts(leagueId, season),
     gatherRivalryFacts(leagueId, season),
+    gatherAnalysisFacts(leagueId, season),
   ]);
   const allFacts: StorylineFacts[] = factGroups.flat();
 

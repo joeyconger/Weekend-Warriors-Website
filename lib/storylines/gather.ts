@@ -6,8 +6,10 @@ import {
   getUsers,
 } from "@/lib/sleeper/client";
 import { getCurrentWeek } from "@/lib/sleeper/current-week";
+import { getLeagueHistory } from "@/lib/sleeper/history";
 import { rivalryTags } from "@/lib/rivalries-config";
 import type {
+  AnalysisFacts,
   MatchupFacts,
   RivalryFacts,
   StreakFacts,
@@ -329,4 +331,30 @@ export async function gatherRivalryFacts(leagueId: string, season: string): Prom
     });
   }
   return facts;
+}
+
+/** Weekly Power Rankings: current standings, worst-to-best avoided — actual rank order. */
+export async function gatherAnalysisFacts(leagueId: string, season: string): Promise<AnalysisFacts[]> {
+  const currentWeek = await getCurrentWeek();
+  const history = await getLeagueHistory(leagueId);
+  const standings = history.seasons[0]?.standings ?? [];
+  const gamesPlayed = standings.some((s) => s.wins + s.losses + s.ties > 0);
+  if (!gamesPlayed) return []; // week 1, nothing to rank yet
+
+  return [
+    {
+      kind: "analysis",
+      season,
+      week: Math.max(1, currentWeek - 1),
+      rankings: standings.map((s, i) => ({
+        rank: i + 1,
+        teamName: s.teamName,
+        managerName: s.displayName,
+        wins: s.wins,
+        losses: s.losses,
+        ties: s.ties,
+        pointsFor: s.pointsFor,
+      })),
+    },
+  ];
 }

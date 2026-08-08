@@ -3,7 +3,8 @@ export type StorylineType =
   | "matchup"
   | "streak"
   | "waiver"
-  | "rivalry";
+  | "rivalry"
+  | "analysis";
 
 export interface Storyline {
   id: number;
@@ -66,9 +67,25 @@ export interface RivalryFacts {
   teamB: { teamName: string; managerName: string; points: number };
 }
 
+export interface AnalysisFacts {
+  kind: "analysis";
+  season: string;
+  week: number;
+  rankings: Array<{
+    rank: number;
+    teamName: string;
+    managerName: string;
+    wins: number;
+    losses: number;
+    ties: number;
+    pointsFor: number;
+  }>;
+}
+
 export type StorylineFacts =
   | TradeFacts
   | MatchupFacts
   | StreakFacts
   | WaiverFacts
-  | RivalryFacts;
+  | RivalryFacts
+  | AnalysisFacts;
