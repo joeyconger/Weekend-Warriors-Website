@@ -81,7 +81,7 @@ describe("projectWinTotal", () => {
 });
 
 describe("buildChampionshipOdds", () => {
-  it("ranks the better record/scoring team ahead and returns probabilities that sum to ~1", () => {
+  it("ranks the better record/scoring team ahead with a higher title probability", () => {
     const odds = buildChampionshipOdds([
       { identity: mkIdentity("strong"), avgPoints: 130, wins: 8, ties: 0, gamesPlayed: 8 },
       { identity: mkIdentity("weak"), avgPoints: 90, wins: 2, ties: 0, gamesPlayed: 8 },
@@ -89,22 +89,37 @@ describe("buildChampionshipOdds", () => {
 
     expect(odds[0].identity.userId).toBe("strong");
     expect(odds[0].probability).toBeGreaterThan(odds[1].probability);
-    const total = odds.reduce((sum, o) => sum + o.probability, 0);
-    expect(total).toBeCloseTo(1, 5);
   });
 
-  it("separates the best and worst team dramatically, not bunched near even odds", () => {
+  it("pins #1 near the favorite endpoint and last place near the longshot endpoint, regardless of how close the real stats are", () => {
+    // Deliberately tight stats — a real early-season table where every team
+    // is 1-0 or 0-1 with near-identical scoring. The board should still
+    // look dramatic; it shouldn't collapse toward even odds just because
+    // the underlying numbers are close together.
+    const tightField = Array.from({ length: 10 }, (_, i) => ({
+      identity: mkIdentity(`team${i}`),
+      avgPoints: 120 - i * 0.5, // a fraction of a point apart
+      wins: i < 5 ? 1 : 0,
+      ties: 0,
+      gamesPlayed: 1,
+    }));
+    const odds = buildChampionshipOdds(tightField);
+
+    expect(odds[0].americanOdds).toBe("+150");
+    expect(odds[odds.length - 1].americanOdds).toBe("+7500");
+  });
+
+  it("orders every team monotonically by rank, best to worst", () => {
     const odds = buildChampionshipOdds([
       { identity: mkIdentity("best"), avgPoints: 165, wins: 11, ties: 0, gamesPlayed: 14 },
       { identity: mkIdentity("mid"), avgPoints: 150, wins: 8, ties: 0, gamesPlayed: 14 },
       { identity: mkIdentity("bad"), avgPoints: 135, wins: 5, ties: 0, gamesPlayed: 14 },
       { identity: mkIdentity("worst"), avgPoints: 115, wins: 2, ties: 0, gamesPlayed: 14 },
     ]);
-    const best = odds.find((o) => o.identity.userId === "best")!;
-    const worst = odds.find((o) => o.identity.userId === "worst")!;
-    // A modest ~2x gap in record/scoring should compound into an order of
-    // magnitude (or more) gap in title probability.
-    expect(best.probability / worst.probability).toBeGreaterThan(50);
-    expect(best.probability).toBeGreaterThan(0.5); // heavy favorite, not just "leading"
+    for (let i = 1; i < odds.length; i++) {
+      expect(odds[i - 1].probability).toBeGreaterThan(odds[i].probability);
+    }
+    expect(odds[0].identity.userId).toBe("best");
+    expect(odds[odds.length - 1].identity.userId).toBe("worst");
   });
 });

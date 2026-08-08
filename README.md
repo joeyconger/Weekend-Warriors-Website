@@ -12,14 +12,15 @@ Railway.
 | Design system (colors, fonts, tabbed nav) | ✅ Built — OU crimson/cream |
 | Home/hero, past-champions banner, at-a-glance box | ✅ Built — **untested against live Sleeper data** (see below) |
 | Managers, History (past seasons + all-time records), Season (current), Draft Central | ✅ Built — same caveat |
-| Rivalries / Wall of Shame (markdown content) | ✅ Built, ships with placeholder example posts |
+| Wall of Shame (markdown content) | ✅ Built |
+| Rivalries | ⏸️ Off the nav for now, at your request — content system + permalinks (`/rivalries/[slug]`) still work, `/rivalries` redirects home |
 | Odds tab (performance + real strength of schedule + projections) | ✅ Built, math unit-tested — projections piece uses an unofficial Sleeper endpoint, see below |
 | Storylines tab (AI storylines + Recaps/Analysis, all one tab) + Gemini pipeline | ✅ Built, wired to fall back to template text without a Gemini key |
 | Real league colors | ✅ Oklahoma Sooners crimson/cream |
 | Tagline | ❌ Empty on purpose — supply one whenever, see below |
 | Founding year | ✅ 2021 |
 | 2026 Season Preview (Analysis) | ✅ Live — real content, not a placeholder |
-| Real recap/wall-of-shame content | ❌ Still just placeholder/example posts (rivalries, weekly recaps) |
+| Weekly Recaps content | ❌ Still just the placeholder example post |
 
 **Why "untested against live Sleeper data":** this site was built in a
 sandboxed environment whose network egress is blocked from reaching
@@ -90,6 +91,14 @@ content/
   wall-of-shame/worst-trade-2025.md
 ```
 
+**Rivalries is off the nav for now** (removed at your request) — the
+content folder, `lib/rivalries-config.ts` tagging (which still powers
+Storylines' rivalry-update category), and individual permalinks at
+`/rivalries/[slug]` all still work exactly as before. `/rivalries`
+itself (the list page) redirects to home, and it's a non-permanent
+redirect specifically so it's easy to bring back — just re-add the tab
+in `components/NavTabs.tsx` and drop the redirect from `next.config.ts`.
+
 Frontmatter shape (see the placeholder file in each folder for a working
 example):
 
@@ -128,13 +137,18 @@ board that's live from week 1, not just once there's a performance track
 record. (No disclaimer banner on the page — obviously nobody's setting a
 real betting line on a home fantasy league.)
 
-**Championship odds are deliberately dramatic** — the best and worst
-teams should look like a heavy favorite and a real longshot, not bunched
-together near even money. `buildChampionshipOdds` in `lib/odds.ts` raises
-each team's composite win-pct/scoring-rate score to the 8th power before
-normalizing into probabilities, so a modest real-world gap in record and
-scoring compounds into an order-of-magnitude (or more) gap in title odds.
-Tune the exponent there if it ever needs to be more or less extreme.
+**Championship odds are deliberately dramatic and calibrated, not just
+data-driven.** Real league standings are often too close together for a
+pure stats formula to produce a dramatic-looking board — `buildChampionshipOdds`
+in `lib/odds.ts` doesn't try. It ranks teams by a composite win-pct/scoring-rate
+score, then interpolates *by rank position* between two fixed endpoints:
+#1 always lands close to **+150** (~40% — a realistic "clear favorite" for
+a full-season title race) and last place always lands close to **+7500**
+(~1.3%, a real longshot), with everyone else spaced smoothly (geometrically)
+between them. That means the board looks dramatic every week regardless of
+how tight the actual records/points happen to be — tune
+`CHAMPIONSHIP_FAVORITE_PROBABILITY` / `CHAMPIONSHIP_LONGSHOT_PROBABILITY`
+in `lib/odds.ts` if those target numbers ever need to move.
 
 What actually drives the numbers:
 
@@ -142,15 +156,21 @@ What actually drives the numbers:
    from season standings.
 2. **Real per-week projections, for weeks that haven't happened yet** —
    `lib/odds-data.ts` fetches Sleeper's actual projections for *each*
-   remaining week individually (not just the current one), runs each
-   through a lineup optimizer (`lib/lineup.ts`) that picks a team's
-   best-projected starters per position/FLEX slot, and matches that
-   week's projected score against that week's *actual* scheduled
-   opponent (`lib/sleeper/schedule.ts`) — a real week-by-week schedule
-   simulation, not a flat average. This is what makes Championship and
-   Season Win Totals meaningful in week 1, when every team's season
-   average is still 0: there's no games-played heuristic anywhere, it's
-   just real data where it exists and real projections where it doesn't.
+   remaining week individually (not just the current one) and matches
+   each team's score against that week's *actual* scheduled opponent
+   (`lib/sleeper/schedule.ts`) — a real week-by-week schedule simulation,
+   not a flat average. For a team's actual score estimate, it prefers
+   summing that team's **already-set starters'** individual projections
+   (`sumProjectedPoints` in `lib/lineup.ts`) — the same math Sleeper's own
+   UI uses — and only falls back to a lineup optimizer (picking the
+   theoretical best starters from the full roster) when a week's actual
+   starters aren't known yet. This is also what keeps "This Week's Lines"
+   within a few points of what Sleeper itself would show, rather than an
+   optimizer's guess at a manager's ideal (and possibly different) lineup.
+   It's also what makes Championship and Season Win Totals meaningful in
+   week 1, when every team's season average is still 0: there's no
+   games-played heuristic anywhere, just real data where it exists and
+   real projections where it doesn't.
 3. Championship odds also get a small nudge for teams that have already
    played a tougher-than-average schedule.
 

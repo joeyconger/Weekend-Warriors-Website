@@ -5,7 +5,7 @@ import { getLeagueHistory } from "@/lib/sleeper/history";
 import { getCurrentWeek } from "@/lib/sleeper/current-week";
 import { getFullSchedule, playedOpponents, remainingOpponents } from "@/lib/sleeper/schedule";
 import { getWeekProjections, scoringPointsKey } from "@/lib/sleeper/projections";
-import { projectTeamScore, type RosterPlayer } from "@/lib/lineup";
+import { projectTeamScore, sumProjectedPoints, type RosterPlayer } from "@/lib/lineup";
 import {
   buildChampionshipOdds,
   buildMatchupLine,
@@ -29,14 +29,14 @@ export interface OddsData {
 /**
  * Gathers everything the Odds page needs. Rather than any heuristic
  * blending, every remaining week gets its own real Sleeper projection:
- * for each team, each unplayed week's score estimate is that week's
- * actual projected lineup total (via lineup.ts), matched against that
- * week's actual scheduled opponent (via schedule.ts). Played weeks use
- * real results (already reflected in season standings). This is what
- * drives Championship odds, Season Win Totals, and this week's lines —
- * all from the same per-week projection data, just aggregated
- * differently. Every external call degrades gracefully; a failure at any
- * stage falls back to season-average numbers rather than breaking the page.
+ * for each team, each unplayed week's score estimate prefers that team's
+ * actual currently-set starters for the week (summing their individual
+ * projections — the same math Sleeper's own UI uses), falling back to a
+ * lineup optimizer only when starters aren't known yet, and to season
+ * average only when projections themselves are unavailable. Played weeks
+ * use real results (already reflected in season standings). Every
+ * external call degrades gracefully; a failure at any stage falls back
+ * rather than breaking the page.
  */
 export async function buildOddsData(): Promise<OddsData | null> {
   const leagueId = siteConfig.sleeperLeagueId;
@@ -58,13 +58,17 @@ export async function buildOddsData(): Promise<OddsData | null> {
   }
   const evalWeek = currentWeek ?? regSeasonWeeks + 1;
 
-  const schedule = await getFullSchedule(leagueId, regSeasonWeeks).catch(() => []);
+  const { matchups: schedule, startersByWeek } = await getFullSchedule(leagueId, regSeasonWeeks).catch(
+    () => ({ matchups: [], startersByWeek: new Map() })
+  );
   const teams = computeTeamPower(currentSeason.standings);
   const powerByRoster = new Map(teams.map((t) => [t.rosterId, t]));
 
-  // Per-team, per-remaining-week projected score: fetches each remaining
-  // week's real Sleeper projections and runs them through the lineup
-  // optimizer, one map per week. A week's fetch failing only costs that
+  // Per-team, per-remaining-week data: fetches each remaining week's real
+  // Sleeper projections once, then reuses it two ways per team — summing
+  // actual starters directly (preferred, matches Sleeper's own math) or,
+  // when starters aren't known for that week, running the lineup
+  // optimizer as a substitute. A week's fetch failing only costs that
   // week (falls back to season average for it); the whole feature only
   // goes fully flat if every remaining week fails.
   const remainingWeeks = Array.from(
@@ -84,7 +88,8 @@ export async function buildOddsData(): Promise<OddsData | null> {
     }
   }
 
-  const projectedScoreByRosterAndWeek = new Map<number, Map<number, number>>();
+  const optimizerScoreByRosterAndWeek = new Map<number, Map<number, number>>();
+  const rawProjectionsByWeek = new Map<number, Map<string, number>>();
   let anyWeekProjected = false;
 
   if (league && rosters.length > 0) {
@@ -105,24 +110,32 @@ export async function buildOddsData(): Promise<OddsData | null> {
               projectTeamScore(rosterPlayers, projections, league.roster_positions)
             );
           }
-          return { week, byRoster };
+          return { week, byRoster, projections };
         } catch {
-          return { week, byRoster: null };
+          return { week, byRoster: null, projections: null };
         }
       })
     );
-    for (const { week, byRoster } of perWeekResults) {
+    for (const { week, byRoster, projections } of perWeekResults) {
       if (byRoster && byRoster.size > 0) {
-        projectedScoreByRosterAndWeek.set(week, byRoster);
+        optimizerScoreByRosterAndWeek.set(week, byRoster);
         anyWeekProjected = true;
+      }
+      if (projections) {
+        rawProjectionsByWeek.set(week, projections);
       }
     }
   }
 
-  /** A team's estimated score for a given remaining week: its real projection if we have one, else its season average. */
+  /** A team's estimated score for a given remaining week: actual set starters summed against real projections (matches Sleeper's own number) > lineup-optimizer guess > season average. */
   const scoreFor = (rosterId: number, week: number): number => {
-    const fromProjection = projectedScoreByRosterAndWeek.get(week)?.get(rosterId);
-    if (fromProjection != null) return fromProjection;
+    const starters = startersByWeek.get(week)?.get(rosterId);
+    const projections = rawProjectionsByWeek.get(week);
+    if (starters && starters.length > 0 && projections) {
+      return sumProjectedPoints(starters, projections);
+    }
+    const fromOptimizer = optimizerScoreByRosterAndWeek.get(week)?.get(rosterId);
+    if (fromOptimizer != null) return fromOptimizer;
     return powerByRoster.get(rosterId)?.avgPoints ?? 0;
   };
 
@@ -196,6 +209,6 @@ export async function buildOddsData(): Promise<OddsData | null> {
     weekNumber: currentWeek,
     matchupLines,
     winTotals,
-    projectionsAvailable: anyWeekProjected,
+    projectionsAvailable: anyWeekProjected || rawProjectionsByWeek.size > 0,
   };
 }

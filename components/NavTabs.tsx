@@ -6,17 +6,16 @@ import clsx from "clsx";
 
 const TABS = [
   { href: "/", label: "Home" },
-  { href: "/managers", label: "Managers" },
-  { href: "/history", label: "History" },
   { href: "/season", label: "Season" },
-  { href: "/draft", label: "Draft Central" },
-  { href: "/rivalries", label: "Rivalries" },
-  { href: "/wall-of-shame", label: "Wall of Shame" },
   { href: "/odds", label: "Odds" },
   // Individual recap/analysis posts still live at /recaps/[slug] (their
   // permalinks didn't move when Recaps folded into Storylines), so this
   // tab also lights up there.
   { href: "/storylines", label: "Storylines", alsoActiveUnder: ["/recaps"] },
+  { href: "/managers", label: "Managers" },
+  { href: "/draft", label: "Draft Central" },
+  { href: "/history", label: "History" },
+  { href: "/wall-of-shame", label: "Wall of Shame" },
 ] as const;
 
 function isActive(pathname: string, tab: { href: string; alsoActiveUnder?: readonly string[] }) {

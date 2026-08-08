@@ -103,29 +103,40 @@ export interface ChampionshipOdds {
   americanOdds: string;
 }
 
+// Calibrated endpoints for the championship board: the #1 team should read
+// like a clear favorite (+150 ≈ 40% to win it all — realistic for a full
+// fantasy season, where even the best team has to survive 14+ weeks plus
+// playoffs), and the last-place team like a real longshot (+7500 ≈ 1.3%).
+// This is a *rank*-based interpolation, not a formula on the raw stats —
+// deliberately so, because how close real teams' records/points happen to
+// be shouldn't change how dramatic the board looks. #1 is always close to
+// the favorite endpoint and last is always close to the longshot endpoint;
+// everyone else is spaced smoothly (geometrically) between them by rank.
+const CHAMPIONSHIP_FAVORITE_PROBABILITY = 0.4; // +150
+const CHAMPIONSHIP_LONGSHOT_PROBABILITY = 100 / (100 + 7500); // +7500
+
 export function buildChampionshipOdds(teams: ChampionshipInput[]): ChampionshipOdds[] {
   const maxAvg = Math.max(...teams.map((t) => t.avgPoints), 1);
-  const scored = teams.map((t) => {
-    const winPct = t.gamesPlayed > 0 ? (t.wins + t.ties * 0.5) / t.gamesPlayed : 0.5;
-    const scoringRate = Math.max(t.avgPoints, 0) / maxAvg;
-    // High exponent = a small edge in record/scoring compounds into a large
-    // gap in title odds — the best team should look like a heavy favorite,
-    // the worst like a real longshot, not everyone bunched near even money.
-    const score = Math.pow(Math.max(winPct * 0.6 + scoringRate * 0.4, 0.001), 8);
-    return { team: t, score };
-  });
-  const total = scored.reduce((sum, s) => sum + s.score, 0) || 1;
-
-  return scored
-    .map(({ team, score }) => {
-      const probability = score / total;
-      return {
-        identity: team.identity,
-        probability,
-        americanOdds: americanOdds(probability),
-      };
+  const ranked = teams
+    .map((t) => {
+      const winPct = t.gamesPlayed > 0 ? (t.wins + t.ties * 0.5) / t.gamesPlayed : 0.5;
+      const scoringRate = Math.max(t.avgPoints, 0) / maxAvg;
+      return { team: t, composite: winPct * 0.6 + scoringRate * 0.4 };
     })
-    .sort((a, b) => b.probability - a.probability);
+    .sort((a, b) => b.composite - a.composite);
+
+  const n = ranked.length;
+  const ratio = CHAMPIONSHIP_LONGSHOT_PROBABILITY / CHAMPIONSHIP_FAVORITE_PROBABILITY;
+
+  return ranked.map(({ team }, i) => {
+    const t = n > 1 ? i / (n - 1) : 0;
+    const probability = CHAMPIONSHIP_FAVORITE_PROBABILITY * Math.pow(ratio, t);
+    return {
+      identity: team.identity,
+      probability,
+      americanOdds: americanOdds(probability),
+    };
+  });
 }
 
 export interface WinTotal {

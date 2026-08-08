@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectTeamScore, type RosterPlayer } from "./lineup";
+import { projectTeamScore, sumProjectedPoints, type RosterPlayer } from "./lineup";
 
 describe("projectTeamScore", () => {
   it("fills fixed slots by position, then FLEX from whoever's left, always taking the best projection available", () => {
@@ -50,5 +50,25 @@ describe("projectTeamScore", () => {
 
   it("returns 0 for an empty roster", () => {
     expect(projectTeamScore([], new Map(), ["QB", "RB", "BN"])).toBe(0);
+  });
+});
+
+describe("sumProjectedPoints", () => {
+  it("sums exactly the given starters, ignoring the rest of the roster", () => {
+    const projections = new Map([
+      ["a", 20],
+      ["b", 10],
+      ["c", 999], // not a starter — should not count
+    ]);
+    expect(sumProjectedPoints(["a", "b"], projections)).toBe(30);
+  });
+
+  it("treats a missing projection as 0 instead of throwing", () => {
+    const projections = new Map([["a", 20]]);
+    expect(sumProjectedPoints(["a", "unknown-player"], projections)).toBe(20);
+  });
+
+  it("returns 0 for no starters", () => {
+    expect(sumProjectedPoints([], new Map([["a", 20]]))).toBe(0);
   });
 });

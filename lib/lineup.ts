@@ -56,3 +56,15 @@ export function projectTeamScore(
 
   return total;
 }
+
+/**
+ * Sums a team's already-known starters' projections directly — no
+ * optimizing, just what's actually set. Preferred over projectTeamScore
+ * whenever a team's real starters for the week are known: it matches
+ * what Sleeper itself would show as that team's projected total, which
+ * can differ from the hypothetical best lineup if a manager's bench
+ * isn't optimally set.
+ */
+export function sumProjectedPoints(playerIds: string[], projections: Map<string, number>): number {
+  return playerIds.reduce((sum, id) => sum + (projections.get(id) ?? 0), 0);
+}
