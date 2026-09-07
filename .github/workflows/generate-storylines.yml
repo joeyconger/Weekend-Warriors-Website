@@ -27,21 +27,3 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
-      - name: TEMP diagnostic — find the LaPorta trade in Sleeper's raw data
-        run: |
-          LEAGUE_ID=1315737573154390016
-          echo "--- Finding Sam LaPorta's player_id ---"
-          curl -s "https://api.sleeper.app/v1/players/nfl" -o players.json
-          LAPORTA_ID=$(jq -r 'to_entries[] | select(.value.first_name=="Sam" and .value.last_name=="LaPorta") | .key' players.json)
-          echo "LaPorta player_id: ${LAPORTA_ID}"
-          echo "--- Scanning transactions weeks 1-8 for trades involving LaPorta ---"
-          for week in 1 2 3 4 5 6 7 8; do
-            curl -s "https://api.sleeper.app/v1/league/${LEAGUE_ID}/transactions/${week}" -o "txns_${week}.json"
-            match=$(jq --arg pid "$LAPORTA_ID" '[.[] | select(.type=="trade") | select((.adds // {} | has($pid)) or (.drops // {} | has($pid)))]' "txns_${week}.json")
-            count=$(echo "$match" | jq 'length')
-            if [ "$count" -gt 0 ]; then
-              echo "=== Week ${week}: found ${count} matching trade(s) ==="
-              echo "$match" | jq '.[] | {status, roster_ids, created, adds, drops, draft_picks, waiver_budget}'
-            fi
-          done
-        env: {}

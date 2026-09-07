@@ -73,17 +73,28 @@ async function playerPointsByRosterInRange(
   return byRoster;
 }
 
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
 export async function gatherTradeFacts(leagueId: string, season: string): Promise<TradeFacts[]> {
   const currentWeek = await getCurrentWeek();
   const fromWeek = Math.max(1, currentWeek - LOOKBACK_WEEKS);
   const [teams, names] = await Promise.all([loadTeamContexts(leagueId), playerNameLookup()]);
 
-  const trades: Array<{ week: number; rosterIds: number[]; adds: Record<string, number> }> = [];
+  const trades: Array<{
+    week: number;
+    rosterIds: number[];
+    adds: Record<string, number>;
+    draftPicks: Array<{ season: string; round: number; owner_id: number }>;
+  }> = [];
   for (let week = fromWeek; week <= currentWeek; week++) {
     const txns = await getTransactions(leagueId, week).catch(() => []);
     for (const t of txns) {
       if (t.type !== "trade" || t.status !== "complete" || !t.adds) continue;
-      trades.push({ week, rosterIds: t.roster_ids, adds: t.adds });
+      trades.push({ week, rosterIds: t.roster_ids, adds: t.adds, draftPicks: t.draft_picks ?? [] });
     }
   }
   if (trades.length === 0) return [];
@@ -98,12 +109,23 @@ export async function gatherTradeFacts(leagueId: string, season: string): Promis
     const teamB = teams.get(rosterB);
     if (!teamA || !teamB) continue;
 
-    const receivedA = Object.entries(trade.adds)
-      .filter(([, roster]) => roster === rosterA)
-      .map(([playerId]) => names.get(playerId) ?? playerId);
-    const receivedB = Object.entries(trade.adds)
-      .filter(([, roster]) => roster === rosterB)
-      .map(([playerId]) => names.get(playerId) ?? playerId);
+    const picksFor = (rosterId: number) =>
+      trade.draftPicks
+        .filter((p) => p.owner_id === rosterId)
+        .map((p) => `${p.season} ${ordinal(p.round)}-round pick`);
+
+    const receivedA = [
+      ...Object.entries(trade.adds)
+        .filter(([, roster]) => roster === rosterA)
+        .map(([playerId]) => names.get(playerId) ?? playerId),
+      ...picksFor(rosterA),
+    ];
+    const receivedB = [
+      ...Object.entries(trade.adds)
+        .filter(([, roster]) => roster === rosterB)
+        .map(([playerId]) => names.get(playerId) ?? playerId),
+      ...picksFor(rosterB),
+    ];
     if (receivedA.length === 0 || receivedB.length === 0) continue;
 
     const pointsSince = (rosterId: number) => {
