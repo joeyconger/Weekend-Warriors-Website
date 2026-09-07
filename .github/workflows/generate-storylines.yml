@@ -10,22 +10,6 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - name: TEMP diagnostic — what does SITE_URL actually serve
-        run: |
-          clean_site_url="${SITE_URL%/}"
-          echo "Length of SITE_URL secret: ${#SITE_URL}"
-          echo "--- GET /api/health ---"
-          curl -s -o /dev/null -w "status=%{http_code} url_effective=%{url_effective}\n" "${clean_site_url}/api/health"
-          echo "--- GET / ---"
-          curl -s -o /dev/null -w "status=%{http_code}\n" "${clean_site_url}/"
-          echo "--- GET /storylines (dynamic page route) ---"
-          curl -s -o /dev/null -w "status=%{http_code}\n" "${clean_site_url}/storylines"
-          echo "--- GET /history (static page route) ---"
-          curl -s -o /dev/null -w "status=%{http_code}\n" "${clean_site_url}/history"
-          echo "--- POST /api/generate-storylines (verbose headers) ---"
-          curl -sv -X POST "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer x" 2>&1 | head -40
-        env:
-          SITE_URL: ${{ secrets.SITE_URL }}
       - name: Trigger generation endpoint
         run: |
           # Strip any trailing slash so we never send a double slash
