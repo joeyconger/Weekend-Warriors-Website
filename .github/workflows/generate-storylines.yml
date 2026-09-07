@@ -27,17 +27,20 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
-      - name: TEMP diagnostic — map roster 2/3 to team names, dump full storylines page
+      - name: TEMP one-off — clear stale storylines, regenerate, and verify
         run: |
-          LEAGUE_ID=1315737573154390016
-          echo "--- Roster -> team/manager names ---"
-          curl -s "https://api.sleeper.app/v1/league/${LEAGUE_ID}/rosters" -o rosters.json
-          curl -s "https://api.sleeper.app/v1/league/${LEAGUE_ID}/users" -o users.json
-          jq -r '.[] | "\(.roster_id): owner_id=\(.owner_id)"' rosters.json
-          jq -r '.[] | "\(.user_id): team_name=\(.metadata.team_name // "null"), display_name=\(.display_name)"' users.json
           clean_site_url="${SITE_URL%/}"
-          curl -s "${clean_site_url}/storylines" -o storylines.html
+          echo "--- DELETE (clear stale storylines) ---"
+          curl -s -X DELETE "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer ${GENERATION_SECRET}"
+          echo
+          echo "--- POST (regenerate) ---"
+          curl -s -X POST "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer ${GENERATION_SECRET}"
+          echo
           echo "--- Full text of trade recap cards ---"
+          curl -s "${clean_site_url}/storylines" -o storylines.html
           grep -oE '<h3[^>]*>Trade Recap[^<]*</h3>[[:space:]]*<p[^>]*>[^<]*</p>' storylines.html || true
+          echo "--- Full text of Power Rankings card ---"
+          grep -oE '<h3[^>]*>Power Rankings[^<]*</h3>[[:space:]]*<p[^>]*>[^<]*</p>' storylines.html || true
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
+          GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
