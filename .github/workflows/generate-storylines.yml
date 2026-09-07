@@ -18,6 +18,10 @@ jobs:
           curl -s -o /dev/null -w "status=%{http_code} url_effective=%{url_effective}\n" "${clean_site_url}/api/health"
           echo "--- GET / ---"
           curl -s -o /dev/null -w "status=%{http_code}\n" "${clean_site_url}/"
+          echo "--- GET /storylines (dynamic page route) ---"
+          curl -s -o /dev/null -w "status=%{http_code}\n" "${clean_site_url}/storylines"
+          echo "--- GET /history (static page route) ---"
+          curl -s -o /dev/null -w "status=%{http_code}\n" "${clean_site_url}/history"
           echo "--- POST /api/generate-storylines (verbose headers) ---"
           curl -sv -X POST "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer x" 2>&1 | head -40
         env:
