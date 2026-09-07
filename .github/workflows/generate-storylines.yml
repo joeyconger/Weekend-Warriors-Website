@@ -41,7 +41,7 @@ jobs:
             count=$(echo "$match" | jq 'length')
             if [ "$count" -gt 0 ]; then
               echo "=== Week ${week}: found ${count} matching trade(s) ==="
-              echo "$match" | jq '.[] | {status, roster_ids, created, adds, drops}'
+              echo "$match" | jq '.[] | {status, roster_ids, created, adds, drops, draft_picks, waiver_budget}'
             fi
           done
         env: {}
