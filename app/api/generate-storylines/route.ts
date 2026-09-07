@@ -1,4 +1,5 @@
 import { runStorylineGeneration } from "@/lib/storylines/generate";
+import { clearStorylines } from "@/lib/storylines/db";
 
 /**
  * Triggers storyline generation remotely (e.g. from a scheduled GitHub
@@ -29,4 +30,27 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * TEMP: clears all saved storylines. One-off admin action for wiping stale
+ * template-fallback content generated before the Gemini model fix landed —
+ * remove this handler once that's done.
+ */
+export async function DELETE(request: Request) {
+  const secret = process.env.GENERATION_SECRET;
+  if (!secret) {
+    return Response.json(
+      { error: "GENERATION_SECRET is not configured on the server" },
+      { status: 500 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${secret}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const deleted = clearStorylines();
+  return Response.json({ deleted });
 }

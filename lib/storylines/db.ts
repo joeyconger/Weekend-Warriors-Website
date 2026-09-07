@@ -81,6 +81,12 @@ export function saveStoryline(input: Omit<Storyline, "id" | "createdAt">): void 
   });
 }
 
+/** TEMP: wipes all storylines so stale template-fallback content can be regenerated. */
+export function clearStorylines(): number {
+  const result = getDb().prepare(`DELETE FROM storylines`).run();
+  return Number(result.changes);
+}
+
 export function listStorylines(limit = 50): Storyline[] {
   const rows = getDb()
     .prepare(`SELECT * FROM storylines ORDER BY created_at DESC LIMIT ?`)
