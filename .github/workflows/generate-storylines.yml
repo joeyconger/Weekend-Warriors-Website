@@ -12,8 +12,11 @@ jobs:
     steps:
       - name: Trigger generation endpoint
         run: |
+          # Strip any trailing slash so we never send a double slash
+          # (Next.js's router 404s on "//api/..." instead of matching it).
+          clean_site_url="${SITE_URL%/}"
           http_code=$(curl -s -o response.json -w "%{http_code}" -X POST \
-            "${SITE_URL}/api/generate-storylines" \
+            "${clean_site_url}/api/generate-storylines" \
             -H "Authorization: Bearer ${GENERATION_SECRET}")
           echo "HTTP status: ${http_code}"
           cat response.json
