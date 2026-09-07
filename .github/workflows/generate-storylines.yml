@@ -10,12 +10,6 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - name: TEMP diagnostic — test the fresh secondary domain
-        run: |
-          echo "--- GET https://weekend-warriors-website-production-bac0.up.railway.app/api/health ---"
-          curl -sD - -o /dev/null "https://weekend-warriors-website-production-bac0.up.railway.app/api/health"
-          echo "--- GET https://weekend-warriors-website-production-bac0.up.railway.app/ ---"
-          curl -sD - -o /dev/null "https://weekend-warriors-website-production-bac0.up.railway.app/"
       - name: Trigger generation endpoint
         run: |
           # Strip any trailing slash so we never send a double slash
