@@ -1,5 +1,18 @@
 import type { StorylineFacts } from "./types";
 
+const isPickAsset = (asset: string) => /\bpick$/.test(asset);
+
+function joinAssets(assets: string[]): string {
+  if (assets.length === 1) return assets[0];
+  if (assets.length === 2) return `${assets[0]} and ${assets[1]}`;
+  return `${assets.slice(0, -1).join(", ")}, and ${assets[assets.length - 1]}`;
+}
+
+/** "pushing chips in" if they landed a player, "selling for the future" if it was picks-only. */
+function tradePosture(assets: string[]): string {
+  return assets.some((a) => !isPickAsset(a)) ? "pushing chips in to win now" : "selling off for future value";
+}
+
 /**
  * Deterministic, template-based storyline text. Used when the Gemini call
  * fails or GEMINI_API_KEY isn't set, so the Storylines tab never shows
@@ -8,10 +21,24 @@ import type { StorylineFacts } from "./types";
 export function fallbackBody(facts: StorylineFacts): string {
   switch (facts.kind) {
     case "trade": {
-      const aAhead = facts.teamA.pointsSince >= facts.teamB.pointsSince;
-      const leader = aAhead ? facts.teamA : facts.teamB;
-      const trailer = aAhead ? facts.teamB : facts.teamA;
-      return `${facts.weeksSinceTrade} weeks after the ${facts.teamA.teamName}–${facts.teamB.teamName} trade, ${leader.teamName} is ahead on points (${leader.pointsSince.toFixed(1)} to ${trailer.pointsSince.toFixed(1)}) from the players they picked up. Still early, but the early returns favor ${leader.managerName}.`;
+      const { teamA, teamB } = facts;
+      const assetLine = `${teamA.teamName} landed ${joinAssets(teamA.received)}, while ${teamB.teamName} came away with ${joinAssets(teamB.received)}.`;
+      const postureA = tradePosture(teamA.received);
+      const postureB = tradePosture(teamB.received);
+      const postureLine =
+        postureA === postureB
+          ? `Both sides are playing the same game here — this reads like two teams on the same timeline.`
+          : `${teamA.managerName} looks like they're ${postureA}, while ${teamB.managerName} is ${postureB}.`;
+      const hasStats = teamA.pointsSince > 0 || teamB.pointsSince > 0;
+      const scoreLine = hasStats
+        ? (() => {
+            const aAhead = teamA.pointsSince >= teamB.pointsSince;
+            const leader = aAhead ? teamA : teamB;
+            const trailer = aAhead ? teamB : teamA;
+            return `${facts.weeksSinceTrade} weeks in, the early scoreboard favors ${leader.managerName} (${leader.pointsSince.toFixed(1)} to ${trailer.pointsSince.toFixed(1)} points from what each side brought in).`;
+          })()
+        : `Too early to grade it on points, but the intent behind the deal is already clear.`;
+      return `${assetLine} ${postureLine} ${scoreLine}`;
     }
     case "matchup": {
       if (facts.flavor === "blowout") {
@@ -28,7 +55,7 @@ export function fallbackBody(facts: StorylineFacts): string {
     case "analysis": {
       const top = facts.rankings[0];
       const bottom = facts.rankings[facts.rankings.length - 1];
-      return `Through Week ${facts.week}, ${top.teamName} sits at #1 (${top.wins}-${top.losses}${top.ties ? `-${top.ties}` : ""}, ${top.pointsFor.toFixed(1)} points). ${bottom.teamName} brings up the rear at #${bottom.rank} (${bottom.wins}-${bottom.losses}${bottom.ties ? `-${bottom.ties}` : ""}). Full standings on the Season tab.`;
+      return `Through Week ${facts.week}, ${top.teamName} sits at #1 (${top.wins}-${top.losses}${top.ties ? `-${top.ties}` : ""}, ${top.pointsFor.toFixed(1)} points) and looks like the real deal right now. Down at #${bottom.rank}, ${bottom.teamName} (${bottom.wins}-${bottom.losses}${bottom.ties ? `-${bottom.ties}` : ""}) is running out of reasons to think this is their year. Full standings on the Season tab.`;
     }
   }
 }

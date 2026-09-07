@@ -3,7 +3,7 @@ import type { StorylineFacts } from "./types";
 import { factsToPrompt } from "./prompt";
 import { fallbackBody } from "./fallback";
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+const DEFAULT_MODEL = "gemini-3.6-flash";
 
 export interface GenerationResult {
   body: string;

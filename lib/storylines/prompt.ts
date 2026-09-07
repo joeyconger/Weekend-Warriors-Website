@@ -1,10 +1,14 @@
 import type { StorylineFacts } from "./types";
 
-const STYLE_INSTRUCTIONS = `You are a fantasy football blogger covering a home fantasy league. Write in an
-engaging, slightly irreverent sports-blog tone — confident, a little trash-talky,
-never mean-spirited. Write 2 to 4 sentences. Use the facts given; do not invent
-stats, player names, or events not present in the facts. No hashtags, no emoji,
-no headline — just the body text.`;
+const STYLE_INSTRUCTIONS = `You are an ESPN-style fantasy football analyst covering a home dynasty league.
+Write like real fantasy analysis, not a recap of the box score: take a clear
+stance on what a team's move says about their team-building strategy and
+timeline. Use lines in the spirit of "Team A is pushing chips in to win now,"
+"Team B is selling off vets for picks," or "Team C looks like they already
+know this is a rebuilding year" — confident, opinionated, a little
+trash-talky, never mean-spirited. Write 2 to 4 sentences. Use the facts
+given; do not invent stats, player names, or events not present in the
+facts. No hashtags, no emoji, no headline — just the body text.`;
 
 export function factsToPrompt(facts: StorylineFacts): string {
   const lines: string[] = [STYLE_INSTRUCTIONS, "", "Facts:"];
@@ -13,9 +17,9 @@ export function factsToPrompt(facts: StorylineFacts): string {
     case "trade":
       lines.push(
         `Season ${facts.season}, week ${facts.week} trade, ${facts.weeksSinceTrade} weeks ago.`,
-        `${facts.teamA.teamName} (manager ${facts.teamA.managerName}) acquired: ${facts.teamA.received.join(", ")}. Points scored by those players since the trade: ${facts.teamA.pointsSince.toFixed(1)}.`,
-        `${facts.teamB.teamName} (manager ${facts.teamB.managerName}) acquired: ${facts.teamB.received.join(", ")}. Points scored by those players since the trade: ${facts.teamB.pointsSince.toFixed(1)}.`,
-        `Write a "who's winning this trade so far" recap.`
+        `${facts.teamA.teamName} (manager ${facts.teamA.managerName}) acquired: ${facts.teamA.received.join(", ")}. Points scored by any acquired players since the trade: ${facts.teamA.pointsSince.toFixed(1)}.`,
+        `${facts.teamB.teamName} (manager ${facts.teamB.managerName}) acquired: ${facts.teamB.received.join(", ")}. Points scored by any acquired players since the trade: ${facts.teamB.pointsSince.toFixed(1)}.`,
+        `Name the actual players and picks each side got. Read the trade for what it signals about each team's timeline: a team acquiring proven players is pushing chips in to win now, a team acquiring draft picks is selling off for the future — say so plainly. Then weigh in on who's winning it so far.`
       );
       break;
     case "matchup":
@@ -56,7 +60,7 @@ export function factsToPrompt(facts: StorylineFacts): string {
           (r) =>
             `${r.rank}. ${r.teamName} (${r.managerName}) — ${r.wins}-${r.losses}${r.ties ? `-${r.ties}` : ""}, ${r.pointsFor.toFixed(1)} points for.`
         ),
-        `Write this as a weekly Power Rankings blurb, 4 to 6 sentences instead of the usual 2 to 4. Call out the team at the top, one notable riser or faller in the middle of the pack, and the team at the bottom — using only the records and points given above.`
+        `Write this as a weekly Power Rankings blurb, 4 to 6 sentences instead of the usual 2 to 4. Call out the team at the top, one notable riser or faller in the middle of the pack, and the team at the bottom — using only the records and points given above. Read each team's record for what it says about their season: a team near the top is a real contender, a team near the bottom likely already knows this year is a rebuild — say so directly rather than just restating the standings.`
       );
       break;
   }

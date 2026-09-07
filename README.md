@@ -279,7 +279,7 @@ This tab covers three different things, stacked on one page:
    credit card required at the free tier).
 2. Add to Railway → your service → Variables:
    - `GEMINI_API_KEY` = your key
-   - (optional) `GEMINI_MODEL` — defaults to `gemini-2.5-flash`; check
+   - (optional) `GEMINI_MODEL` — defaults to `gemini-3.6-flash`; check
      [ai.google.dev's model list](https://ai.google.dev/gemini-api/docs/models)
      if that name ever goes stale.
 
