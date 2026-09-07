@@ -1,14 +1,22 @@
 import type { StorylineFacts } from "./types";
 
 const STYLE_INSTRUCTIONS = `You are an ESPN-style fantasy football analyst covering a home dynasty league.
-Write like real fantasy analysis, not a recap of the box score: take a clear
-stance on what a team's move says about their team-building strategy and
-timeline. Use lines in the spirit of "Team A is pushing chips in to win now,"
-"Team B is selling off vets for picks," or "Team C looks like they already
-know this is a rebuilding year" — confident, opinionated, a little
-trash-talky, never mean-spirited. Write 2 to 4 sentences. Use the facts
-given; do not invent stats, player names, or events not present in the
-facts. No hashtags, no emoji, no headline — just the body text.`;
+Write like real fantasy analysis, not a recap of the box score: take a clear,
+opinionated stance on what a move says about a team's strategy and timeline —
+are they contending, rebuilding, or straddling the fence? Confident, a
+little trash-talky, never mean-spirited. Write 2 to 4 sentences.
+
+Vary your voice piece to piece — don't reuse the same sentence structure,
+opening line, or stock phrasing every time (e.g. don't lean on "pushing
+chips in" or "selling for the future" as go-to phrases; find a fresh way to
+say it each time, or don't use that framing at all if a different angle fits
+better). Skip any comparison that isn't actually meaningful yet — if both
+sides are still at 0.0 points because the season just started, don't
+mention the points at all rather than noting the tie every time.
+
+Use the facts given; do not invent stats, player names, or events not
+present in the facts. No hashtags, no emoji, no headline — just the body
+text.`;
 
 export function factsToPrompt(facts: StorylineFacts): string {
   const lines: string[] = [STYLE_INSTRUCTIONS, "", "Facts:"];
@@ -19,7 +27,7 @@ export function factsToPrompt(facts: StorylineFacts): string {
         `Season ${facts.season}, week ${facts.week} trade, ${facts.weeksSinceTrade} weeks ago.`,
         `${facts.teamA.teamName} (manager ${facts.teamA.managerName}) acquired: ${facts.teamA.received.join(", ")}. Points scored by any acquired players since the trade: ${facts.teamA.pointsSince.toFixed(1)}.`,
         `${facts.teamB.teamName} (manager ${facts.teamB.managerName}) acquired: ${facts.teamB.received.join(", ")}. Points scored by any acquired players since the trade: ${facts.teamB.pointsSince.toFixed(1)}.`,
-        `Name the actual players and picks each side got. Read the trade for what it signals about each team's timeline: a team acquiring proven players is pushing chips in to win now, a team acquiring draft picks is selling off for the future — say so plainly. Then weigh in on who's winning it so far.`
+        `Name the actual players and picks each side got, and read what the trade signals about each team's timeline and mindset. Only weigh in on who's "winning" the trade if there's something real to point to (like real points scored) — otherwise skip that angle.`
       );
       break;
     case "matchup":
@@ -60,7 +68,7 @@ export function factsToPrompt(facts: StorylineFacts): string {
           (r) =>
             `${r.rank}. ${r.teamName} (${r.managerName}) — ${r.wins}-${r.losses}${r.ties ? `-${r.ties}` : ""}, ${r.pointsFor.toFixed(1)} points for.`
         ),
-        `Write this as a weekly Power Rankings blurb, 4 to 6 sentences instead of the usual 2 to 4. Call out the team at the top, one notable riser or faller in the middle of the pack, and the team at the bottom — using only the records and points given above. Read each team's record for what it says about their season: a team near the top is a real contender, a team near the bottom likely already knows this year is a rebuild — say so directly rather than just restating the standings.`
+        `Write this as a weekly Power Rankings blurb, 4 to 6 sentences instead of the usual 2 to 4. Call out the team at the top, one notable riser or faller in the middle of the pack, and the team at the bottom — using only the records and points given above. Read each team's record for what it actually says about where their season is headed, rather than just restating the standings.`
       );
       break;
   }
