@@ -27,3 +27,13 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
+      - name: TEMP diagnostic — confirm LaPorta trade recap is live
+        run: |
+          clean_site_url="${SITE_URL%/}"
+          curl -s "${clean_site_url}/storylines" -o storylines.html
+          echo "--- Titles ---"
+          grep -oE '<h[23][^>]*>[^<]+</h[23]>' storylines.html
+          echo "--- LaPorta mentions ---"
+          grep -io "laporta" storylines.html | sort | uniq -c || echo "none found"
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
