@@ -27,3 +27,16 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
+      - name: TEMP one-off — clear, regenerate, verify varied phrasing
+        run: |
+          clean_site_url="${SITE_URL%/}"
+          curl -s -X DELETE "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer ${GENERATION_SECRET}"
+          echo
+          curl -s -X POST "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer ${GENERATION_SECRET}"
+          echo
+          curl -s "${clean_site_url}/storylines" -o storylines.html
+          echo "--- Full text of trade recap cards ---"
+          grep -oE '<h3[^>]*>Trade Recap[^<]*</h3>[[:space:]]*<p[^>]*>[^<]*</p>' storylines.html || true
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
