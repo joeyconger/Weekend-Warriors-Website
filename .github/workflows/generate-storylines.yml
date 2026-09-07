@@ -27,20 +27,3 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
-      - name: TEMP one-off — clear stale storylines, regenerate, and verify
-        run: |
-          clean_site_url="${SITE_URL%/}"
-          echo "--- DELETE (clear stale storylines) ---"
-          curl -s -X DELETE "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer ${GENERATION_SECRET}"
-          echo
-          echo "--- POST (regenerate) ---"
-          curl -s -X POST "${clean_site_url}/api/generate-storylines" -H "Authorization: Bearer ${GENERATION_SECRET}"
-          echo
-          echo "--- Full text of trade recap cards ---"
-          curl -s "${clean_site_url}/storylines" -o storylines.html
-          grep -oE '<h3[^>]*>Trade Recap[^<]*</h3>[[:space:]]*<p[^>]*>[^<]*</p>' storylines.html || true
-          echo "--- Full text of Power Rankings card ---"
-          grep -oE '<h3[^>]*>Power Rankings[^<]*</h3>[[:space:]]*<p[^>]*>[^<]*</p>' storylines.html || true
-        env:
-          SITE_URL: ${{ secrets.SITE_URL }}
-          GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
