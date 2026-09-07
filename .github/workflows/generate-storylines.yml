@@ -10,17 +10,12 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - name: TEMP diagnostic — full response headers
+      - name: TEMP diagnostic — test the fresh secondary domain
         run: |
-          clean_site_url="${SITE_URL%/}"
-          echo "--- HEAD/GET / (full headers) ---"
-          curl -sD - -o /dev/null "${clean_site_url}/"
-          echo "--- GET /api/health (full headers) ---"
-          curl -sD - -o /dev/null "${clean_site_url}/api/health"
-          echo "--- GET /api/health?cachebust=$(date +%s) ---"
-          curl -sD - -o /dev/null "${clean_site_url}/api/health?cachebust=$(date +%s)"
-        env:
-          SITE_URL: ${{ secrets.SITE_URL }}
+          echo "--- GET https://weekend-warriors-website-production-bac0.up.railway.app/api/health ---"
+          curl -sD - -o /dev/null "https://weekend-warriors-website-production-bac0.up.railway.app/api/health"
+          echo "--- GET https://weekend-warriors-website-production-bac0.up.railway.app/ ---"
+          curl -sD - -o /dev/null "https://weekend-warriors-website-production-bac0.up.railway.app/"
       - name: Trigger generation endpoint
         run: |
           # Strip any trailing slash so we never send a double slash
