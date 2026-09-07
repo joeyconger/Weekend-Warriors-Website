@@ -27,13 +27,17 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           GENERATION_SECRET: ${{ secrets.GENERATION_SECRET }}
-      - name: TEMP diagnostic — confirm LaPorta trade recap is live
+      - name: TEMP diagnostic — map roster 2/3 to team names, dump full storylines page
         run: |
+          LEAGUE_ID=1315737573154390016
+          echo "--- Roster -> team/manager names ---"
+          curl -s "https://api.sleeper.app/v1/league/${LEAGUE_ID}/rosters" -o rosters.json
+          curl -s "https://api.sleeper.app/v1/league/${LEAGUE_ID}/users" -o users.json
+          jq -r '.[] | "\(.roster_id): owner_id=\(.owner_id)"' rosters.json
+          jq -r '.[] | "\(.user_id): team_name=\(.metadata.team_name // "null"), display_name=\(.display_name)"' users.json
           clean_site_url="${SITE_URL%/}"
           curl -s "${clean_site_url}/storylines" -o storylines.html
-          echo "--- Titles ---"
-          grep -oE '<h[23][^>]*>[^<]+</h[23]>' storylines.html
-          echo "--- LaPorta mentions ---"
-          grep -io "laporta" storylines.html | sort | uniq -c || echo "none found"
+          echo "--- Full text of trade recap cards ---"
+          grep -oE '<h3[^>]*>Trade Recap[^<]*</h3>[[:space:]]*<p[^>]*>[^<]*</p>' storylines.html || true
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
