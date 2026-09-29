@@ -9,9 +9,29 @@ import {
   gatherWaiverFacts,
 } from "./gather";
 import { generateStorylineBody } from "./gemini";
+import { fallbackBody } from "./fallback";
 import { dedupeKeyFor, titleFor } from "./prompt";
 import { saveStoryline } from "./db";
 import type { StorylineFacts } from "./types";
+
+// Keep this well under Railway's ~5 minute proxy timeout: once a scheduled
+// run's fact list gets long (more weeks of games = more matchup/streak/
+// waiver facts), calling Gemini for every single one sequentially can run
+// long enough to get the whole request killed with a 502, losing all of
+// it. Past the deadline, remaining facts use the instant template instead
+// of a Gemini call, so a run this large always finishes and saves.
+const GENERATION_DEADLINE_MS = 3.5 * 60 * 1000;
+const CONCURRENCY = 4;
+
+async function generateOne(
+  facts: StorylineFacts,
+  deadline: number
+): Promise<{ body: string; source: "gemini" | "template" }> {
+  if (Date.now() >= deadline) {
+    return { body: fallbackBody(facts), source: "template" };
+  }
+  return generateStorylineBody(facts);
+}
 
 /**
  * Gathers this week's storyline-worthy facts across every category, asks
@@ -34,25 +54,34 @@ export async function runStorylineGeneration(): Promise<{ generated: number; ski
   ]);
   const allFacts: StorylineFacts[] = factGroups.flat();
 
+  const deadline = Date.now() + GENERATION_DEADLINE_MS;
   let generated = 0;
   let skipped = 0;
-  for (const facts of allFacts) {
-    try {
-      const { body, source } = await generateStorylineBody(facts);
-      saveStoryline({
-        type: facts.kind,
-        title: titleFor(facts),
-        body,
-        season: facts.season,
-        week: facts.week,
-        managerIds: [],
-        source,
-        dedupeKey: dedupeKeyFor(facts),
-      });
-      generated++;
-    } catch (err) {
-      console.error("Failed to generate a storyline, skipping:", err);
-      skipped++;
+
+  for (let i = 0; i < allFacts.length; i += CONCURRENCY) {
+    const batch = allFacts.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async (facts) => {
+        const { body, source } = await generateOne(facts, deadline);
+        saveStoryline({
+          type: facts.kind,
+          title: titleFor(facts),
+          body,
+          season: facts.season,
+          week: facts.week,
+          managerIds: [],
+          source,
+          dedupeKey: dedupeKeyFor(facts),
+        });
+      })
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        generated++;
+      } else {
+        console.error("Failed to generate a storyline, skipping:", result.reason);
+        skipped++;
+      }
     }
   }
 
